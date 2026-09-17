@@ -14,20 +14,6 @@ Most of the value is in the things that took measurement to get right, and those
 written up in [`docs/`](docs/) — boot time, the firmware/EC power behaviour, and the
 dead ends (so they are not re-explored).
 
-## What is non-trivial here
-
-This is not a "here is my `.zshrc`" repo. The parts that took real work, each with
-a write-up in [`docs/`](docs/):
-
-| Area | What it involved |
-|---|---|
-| **Boot: 114 s → 23 s** | Two dead UEFI boot entries were costing **91 s** of POST; plus an initramfs slimmed 248 → 55 MB and a snapshot cap so the ESP cannot fill up. |
-| **Firmware and EC probing** | Mapped the AMD SMU interface on a Ryzen 5800H and established that Curve Optimizer is gated off by HP's firmware on **both** Linux and Windows — including catching a Windows tuning tool that reports failed writes as applied. |
-| **VFIO GPU passthrough** | The RTX 3070 bound to `vfio-pci` on demand, a one-shot Limine entry, Looking Glass shared memory, libvirt. |
-| **Pro audio on Linux** | Pipewire/JACK with a per-interface quantum (64 for the RME, 256 for the internal Ryzen codec), a switchable proprietary driver mode, and yabridge for Windows VSTs. |
-| **Reproducibility** | `chezmoi` plus 11 idempotent `run_once` scripts, and a `validate.sh` that checks the machine actually ended up in the intended state — down to “the NVIDIA modules are still out of the initramfs”. |
-| **Debugging** | Root-caused a periodic timer that silently resolved to `infinity`, a libvirt socket loop that undid its own work, and one wrong conclusion of my own that a controlled A/B test overturned. |
-
 ## Installation
 
 ```bash
@@ -65,9 +51,11 @@ dotfiles/
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # reference + investigation record (not deployed)
+│   ├── README.md                             # index: living reference vs record
 │   ├── boot-tuning.md                        # boot time: what was done, measured
 │   ├── firmware-limits.md                    # BIOS/power/EC limits, consolidated
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
+│   ├── notes.md                              # versioned-vs-not, audio, SSH keys
 │   ├── HP-OMEN-15-en1xxx-power-report.md    # the Linux investigation
 │   ├── HP-OMEN-CO-verdict-Windows.md        # Curve Optimizer: verdict + proof
 │   ├── HP-OMEN-LINUX-next-steps.md          # what was left open
@@ -129,31 +117,6 @@ dotfiles/
 - **Wine**: wine-staging 9.21 standalone runner (~/.local/share/wine-runners/)
 - **Peripherals**: Logitech MX Master 3S (logiops)
 
-## Findings & caveats
-
-The non-obvious things about this machine, recorded so they are not explored
-again. Details, tools and raw measurements live in `docs/`.
-
-- **Curve Optimizer / undervolt is impossible here** — on Linux *and* on
-  Windows. The SMU refuses the whole OC/CO command family. UXTU only *looks* like
-  it works: it swallows the failure and still updates its UI. Do not patch
-  `ryzenadj` for it, and do not install ZenTune hoping for CO.
-- **The BIOS “System Configuration” power setting is inert.** Selecting
-  `35W POR` changed nothing — the HP EC owns those values. It is back on the
-  default `Auto`.
-- **An OS-written power profile does persist.** The only thing that clobbers it
-  is a write to `/sys/class/platform-profile/platform-profile-0/profile`, which
-  makes the EC re-apply its own limits, even when writing back the same value.
-- **BIOS modding is not an option** (HP Sure Start active), and the update
-  payload cannot even be extracted for offline inspection.
-- **Boot time** dropped from 114 s to 23 s, essentially all of it in firmware. See
-  `docs/boot-tuning.md` for the numbers and what was done.
-
-→ `docs/firmware-limits.md` · `docs/boot-tuning.md`
-→ Full investigation: `docs/HP-OMEN-15-en1xxx-power-report.md` (Linux),
-`docs/HP-OMEN-CO-verdict-Windows.md` (the CO verdict and its proof),
-`docs/HP-OMEN-LINUX-next-steps.md` (what was left open).
-
 ## Aliases
 
 | Alias | Action |
@@ -167,42 +130,6 @@ again. Details, tools and raw measurements live in `docs/`.
 | `balanced` | Reset to balanced profile (auto AC/battery) |
 | `perf` | Switch to performance mode (4.4 GHz / GPU unlocked) |
 | `material-refresh` | Re-sync kitty/btop/zed/prompt to current wallpaper colors |
-
-## Material You — “follows-the-wallpaper”
-
-kitty, btop, Zed and the p10k prompt all take their colors from the wallpaper:
-`kde-material-you-colors` regenerates a Konsole colorscheme whenever the wallpaper
-changes, and an `on_change_hook` pushes it into each app. Transparency is a single
-KWin rule (90 % on every window) plus kitty's native `background_opacity`, and
-blur runs in "everything" mode with no whitelist.
-
-Two things break after updates — check
-[`docs/material-you.md`](docs/material-you.md) **before** debugging: the daemon
-does not restart if it dies mid-session (use `material-refresh`), and
-`kwin-effects-better-blur-dx` is compiled against KWin, so a Plasma update can
-silently kill the blur until it is rebuilt.
-
-## Notes
-
-- **SSH keys** (`~/.ssh/id_*`): backup manually before reinstall (too sensitive for dotfiles).
-- **KDE config** — only the **stable** `.rc` files are versioned
-  (`kwinrulesrc`, `kxkbrc`, `kglobalshortcutsrc`, `katerc`, `dolphinrc`,
-  `konsolerc`) ; after a change via the UI, do another `chezmoi add`.
-  `kdeglobals` and `kwinrc` **are not versioned**: they are rewritten at
-  runtime (by Plasma, and by `kde-material-you-colors` for the colors) →
-  versioning them fights the daemon and `chezmoi apply` would overwrite your settings.
-  `run_once_08` declaratively imposes the keys that matter.
-- **Audio PipeWire** — config versioned in `dot_config/pipewire/` and
-  `dot_config/wireplumber/`:
-  - **RME Babyface Pro FS** switchable between **CC** mode (kernel driver,
-    `51-rme.conf`) and **proprietary** mode (in-house TuxMix driver via
-    `50-tuxmix.conf`) — see
-    `dot_config/pipewire/pipewire.conf.d/README.md`.
-  - **Per-interface quantum**: global = 64 (RME CC), but the internal Ryzen
-    sound card forces 256 (`52-ryzen-quantum.conf`) — the 64 causes
-    underruns there.
-- These quantum/node-name rules are specific to this laptop (Ryzen
-  `pci-0000_07_00.6`, RME USB) — not intended for other machines.
 
 ## Vendored third-party widgets
 
