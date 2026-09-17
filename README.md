@@ -1,5 +1,9 @@
 # My Dotfiles
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Platform: Arch Linux](https://img.shields.io/badge/Platform-Arch_Linux-1793D1.svg)
+![Managed with chezmoi](https://img.shields.io/badge/Managed_with-chezmoi-00A0B0.svg)
+
 A reproducible **CachyOS** (Arch) laptop setup managed with
 [chezmoi](https://chezmoi.io): KDE Plasma 6 on Wayland, dual-boot with Windows 11,
 GPU passthrough (VFIO) for a Windows VM, a pipewire pro-audio chain, per-AC/battery
@@ -9,6 +13,20 @@ piece of it actually landed.
 Most of the value is in the things that took measurement to get right, and those are
 written up in [`docs/`](docs/) — boot time, the firmware/EC power behaviour, and the
 dead ends (so they are not re-explored).
+
+## What is non-trivial here
+
+This is not a "here is my `.zshrc`" repo. The parts that took real work, each with
+a write-up in [`docs/`](docs/):
+
+| Area | What it involved |
+|---|---|
+| **Boot: 114 s → 23 s** | Two dead UEFI boot entries were costing **91 s** of POST; plus an initramfs slimmed 248 → 55 MB and a snapshot cap so the ESP cannot fill up. |
+| **Firmware and EC probing** | Mapped the AMD SMU interface on a Ryzen 5800H and established that Curve Optimizer is gated off by HP's firmware on **both** Linux and Windows — including catching a Windows tuning tool that reports failed writes as applied. |
+| **VFIO GPU passthrough** | The RTX 3070 bound to `vfio-pci` on demand, a one-shot Limine entry, Looking Glass shared memory, libvirt. |
+| **Pro audio on Linux** | Pipewire/JACK with a per-interface quantum (64 for the RME, 256 for the internal Ryzen codec), a switchable proprietary driver mode, and yabridge for Windows VSTs. |
+| **Reproducibility** | `chezmoi` plus 11 idempotent `run_once` scripts, and a `validate.sh` that checks the machine actually ended up in the intended state — down to “the NVIDIA modules are still out of the initramfs”. |
+| **Debugging** | Root-caused a periodic timer that silently resolved to `infinity`, a libvirt socket loop that undid its own work, and one wrong conclusion of my own that a controlled A/B test overturned. |
 
 ## Installation
 
@@ -126,9 +144,8 @@ again. Details, tools and raw measurements live in `docs/`.
   makes the EC re-apply its own limits, even when writing back the same value.
 - **BIOS modding is not an option** (HP Sure Start active), and the update
   payload cannot even be extracted for offline inspection.
-- **Boot is 23 s** (was 114 s): two dead UEFI boot entries were costing ~91 s of
-  POST; the rest is a slimmed initramfs (248 → 55 MB) and a capped snapshot
-  count.
+- **Boot time** dropped from 114 s to 23 s, essentially all of it in firmware. See
+  `docs/boot-tuning.md` for the numbers and what was done.
 
 → `docs/firmware-limits.md` · `docs/boot-tuning.md`
 → Full investigation: `docs/HP-OMEN-15-en1xxx-power-report.md` (Linux),
