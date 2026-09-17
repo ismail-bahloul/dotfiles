@@ -39,9 +39,11 @@ These quantum and node-name rules are specific to this laptop (Ryzen
 
 See [`material-you.md`](material-you.md).
 
-## Firmware, power, boot
+## Power, firmware, boot
 
-See [`firmware-limits.md`](firmware-limits.md) and [`boot-tuning.md`](boot-tuning.md).
+The firmware and power investigation has its own repository:
+**[hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware)**.
+The boot-time work is in [`boot-tuning.md`](boot-tuning.md).
 
 ---
 

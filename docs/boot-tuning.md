@@ -62,4 +62,5 @@ of printing help. Read the scripts under `/usr/share/libalpm/scripts/` instead.
 
 ---
 
-See also `firmware-limits.md` for the power/BIOS/EC picture.
+See [hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware)
+for the power, BIOS and EC picture — that investigation has its own repository.

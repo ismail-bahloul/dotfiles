@@ -10,9 +10,12 @@ GPU passthrough (VFIO) for a Windows VM, a pipewire pro-audio chain, per-AC/batt
 power and fan management, a slimmed initramfs, and `validate.sh` to check that every
 piece of it actually landed.
 
-Most of the value is in the things that took measurement to get right, and those are
-written up in [`docs/`](docs/) — boot time, the firmware/EC power behaviour, and the
-dead ends (so they are not re-explored).
+Most of the value is in the things that took measurement to get right, and those
+are written up in [`docs/`](docs/) — boot time, the theming chain, and the
+working notes. The firmware and power investigation (what the BIOS settings
+actually do, why undervolting is impossible on this machine) lives in its own
+repository:
+[hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware).
 
 ## Installation
 
@@ -50,16 +53,11 @@ dotfiles/
 ├── etc/                              # system files installed by run_once_11
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
-├── docs/                              # reference + investigation record (not deployed)
-│   ├── README.md                             # index: living reference vs record
+├── docs/                              # why the config here is the way it is
+│   ├── README.md                             # index
 │   ├── boot-tuning.md                        # boot time: what was done, measured
-│   ├── firmware-limits.md                    # BIOS/power/EC limits, consolidated
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
-│   ├── notes.md                              # versioned-vs-not, audio, SSH keys
-│   ├── HP-OMEN-15-en1xxx-power-report.md    # the Linux investigation
-│   ├── HP-OMEN-CO-verdict-Windows.md        # Curve Optimizer: verdict + proof
-│   ├── HP-OMEN-LINUX-next-steps.md          # what was left open
-│   └── evidence/                       # SMU prober, load generator, raw runs
+│   └── notes.md                              # versioned-vs-not, audio, SSH keys
 ├── my-nbfc.json                       # custom fan profile (NBFC)
 ├── create_dot_config/                 # created only if absent (Plasma owns it afterwards)
 │   └── plasma-*.appletsrc             # panel/widgets layout (volatile → apply once)
