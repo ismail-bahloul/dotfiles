@@ -90,7 +90,7 @@ dotfiles/
 
 | Component | Model |
 |---|---|
-| **Laptop** | HP OMEN 15-en1xxx (15-en1022nf) |
+| **Laptop** | HP OMEN 15-en1037nf (4J8B4EA) |
 | **CPU** | AMD Ryzen 7 5800H (8C/16T, Zen 3) |
 | **iGPU** | AMD Radeon Graphics (Vega) |
 | **dGPU** | NVIDIA GeForce RTX 3070 Mobile (GA104, 8 GB GDDR6) |
