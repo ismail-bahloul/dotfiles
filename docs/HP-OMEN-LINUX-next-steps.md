@@ -1,5 +1,10 @@
 # Linux-side next steps — what to do, what NOT to do
 
+> **Status: mostly closed — read §6 first.** §1 (the Curve Optimizer question) is
+> settled, and §2 ("the EC re-asserts OS-written power limits") turned out to be
+> **wrong**: the premise was false and the real trigger is a write to
+> `platform_profile`. §§1–§5 are kept as the record of how that was established.
+
 Companion to `HP-OMEN-15-en1xxx-power-report.md` (your original) and
 `HP-OMEN-CO-verdict-Windows.md` (the Windows-side answer).
 

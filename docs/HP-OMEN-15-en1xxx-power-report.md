@@ -1,5 +1,8 @@
 # HP OMEN 15-en1xxx — power, firmware & undervolt report (Linux side)
 
+> **Status:** §5 ("the EC periodically reverts the power limits") is **wrong** —
+> see the addendum in §10. §1–§4 and §6–§9 stand as written.
+
 Hand-off document for a **Windows-side** investigation. Everything here was
 measured on this exact machine; the commands and their raw output are quoted so
 they can be reproduced and verified independently.

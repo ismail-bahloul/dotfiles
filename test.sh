@@ -1,5 +1,10 @@
 #!/bin/bash
-# test.sh — run pre-deployment checks to validate the dotfiles repo
+# test.sh — repo-side lint, run by hand before pushing.
+#
+# Complements validate.sh: this one checks *the repo* (the source tree has the
+# expected files, shell syntax is valid, JSON parses, no untracked leftovers);
+# validate.sh checks *the machine* (is everything actually deployed and running).
+# Nothing calls this automatically.
 set -e
 
 # ─── Load logging library ──────────────────────────────────────────────────
