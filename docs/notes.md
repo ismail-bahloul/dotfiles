@@ -42,8 +42,8 @@ See [`material-you.md`](material-you.md).
 ## Power, firmware, boot
 
 The firmware and power investigation has its own repository:
-**[hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware)**.
-The boot-time work is in [`boot-tuning.md`](boot-tuning.md).
+**[myomen15](https://github.com/ismail-bahloul/myomen15)**.
+The initramfs and UEFI boot-entry work is in [`boot-tuning.md`](boot-tuning.md).
 
 ---
 

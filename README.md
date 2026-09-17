@@ -15,7 +15,7 @@ are written up in [`docs/`](docs/) — the initramfs and boot tweaks, the themin
 chain, and the working notes. The firmware and power investigation (what the BIOS
 settings actually do, why undervolting is impossible on this machine) lives in
 its own repository:
-[hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware).
+[myomen15](https://github.com/ismail-bahloul/myomen15).
 
 ## Installation
 

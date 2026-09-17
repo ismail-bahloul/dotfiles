@@ -12,7 +12,7 @@ files that ship here.
 ## Firmware and hardware
 
 The firmware, power and undervolt investigation lives in its own repository:
-**[hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware)**.
+**[myomen15](https://github.com/ismail-bahloul/myomen15)**.
 
 It covers what the BIOS power settings actually do (nothing), why Curve Optimizer
 is gated off by HP's firmware on **both** Linux and Windows, and the measured

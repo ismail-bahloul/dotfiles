@@ -51,5 +51,5 @@ of printing help. Read the scripts under `/usr/share/libalpm/scripts/` instead.
 
 ---
 
-See [hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware)
+See [myomen15](https://github.com/ismail-bahloul/myomen15)
 for the power, BIOS and EC picture — that investigation has its own repository.
