@@ -48,8 +48,3 @@ worth at most a couple of seconds.
 
 `limine-mkinitcpio --help` and `limine-snapper-sync --help` **execute** instead
 of printing help. Read the scripts under `/usr/share/libalpm/scripts/` instead.
-
----
-
-See [myomen15](https://github.com/ismail-bahloul/myomen15)
-for the power, BIOS and EC picture — that investigation has its own repository.

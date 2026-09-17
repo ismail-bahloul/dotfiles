@@ -9,15 +9,6 @@ files that ship here.
 | [`material-you.md`](material-you.md) | How the wallpaper-driven theming works (kitty / btop / Zed / prompt), the KWin transparency and blur setup, and the two things that break after updates. |
 | [`notes.md`](notes.md) | Working notes: which configuration is versioned and which is deliberately not, the PipeWire setup, and SSH keys. |
 
-## Firmware and hardware
-
-The firmware, power and undervolt investigation lives in its own repository:
-**[myomen15](https://github.com/ismail-bahloul/myomen15)**.
-
-It covers what the BIOS power settings actually do (nothing), why Curve Optimizer
-is gated off by HP's firmware on **both** Linux and Windows, and the measured
-evidence for each conclusion — including the ones that turned out to be wrong.
-
 ---
 
 Back to the [main README](../README.md).

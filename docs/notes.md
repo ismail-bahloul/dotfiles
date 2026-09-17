@@ -39,10 +39,8 @@ These quantum and node-name rules are specific to this laptop (Ryzen
 
 See [`material-you.md`](material-you.md).
 
-## Power, firmware, boot
+## Boot
 
-The firmware and power investigation has its own repository:
-**[myomen15](https://github.com/ismail-bahloul/myomen15)**.
 The initramfs and UEFI boot-entry work is in [`boot-tuning.md`](boot-tuning.md).
 
 ---

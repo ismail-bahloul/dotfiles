@@ -12,10 +12,7 @@ piece of it actually landed.
 
 Most of the value is in the things that took measurement to get right, and those
 are written up in [`docs/`](docs/) — the initramfs and boot tweaks, the theming
-chain, and the working notes. The firmware and power investigation (what the BIOS
-settings actually do, why undervolting is impossible on this machine) lives in
-its own repository:
-[myomen15](https://github.com/ismail-bahloul/myomen15).
+chain, and the working notes.
 
 ## Installation
 
