@@ -1,0 +1,33 @@
+#!/bin/bash
+# mount-shared — ensures the shared Windows partition (SHARED, NTFS) is mounted.
+#
+# The mount is normally done AT BOOT by /etc/fstab
+# (UUID 5CAC12755C11BA05, ntfs3 driver, nofail option).
+# This helper acts as a manual "retry" if the mount at boot failed.
+# Most common cause: Windows shut down with Fast Startup -> NTFS "dirty",
+# and ntfs3 then refuses to mount it.
+set -eu
+
+MP="${HOME}/SHARED"
+PART_UUID="5CAC12755C11BA05"
+
+if mountpoint -q "$MP"; then
+  echo "already mounted: $MP"
+  df -h "$MP" | tail -1
+  exit 0
+fi
+
+mkdir -p "$MP"
+
+# Mount via the /etc/fstab entry (nofail option -> never blocking).
+if sudo mount "$MP"; then
+  echo "mounted: SHARED -> $MP"
+  df -h "$MP" | tail -1
+  exit 0
+fi
+
+echo "Failed to mount $MP." >&2
+echo "Probable cause: NTFS marked 'dirty' (Windows in Fast Startup / hibernation)." >&2
+echo "Fix: sudo ntfsfix --clear-dirty /dev/disk/by-uuid/$PART_UUID" >&2
+echo "Then re-run this script." >&2
+exit 1

@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Add VFIO kernel entry to limine.conf if not present."""
+import re, sys
+
+LIMINE_CONF = sys.argv[1] if len(sys.argv) > 1 else "/boot/limine.conf"
+
+with open(LIMINE_CONF) as f:
+    content = f.read()
+
+if "linux-cachyos-vfio" in content:
+    print("    VFIO Limine entry already exists")
+    sys.exit(0)
+
+# Find machine-id and root UUID
+mid = re.search(r'comment: machine-id=([0-9a-f]+)', content)
+root_uuid = re.search(r'root=UUID=([0-9a-f-]+)', content)
+if not mid or not root_uuid:
+    print("    ERROR: could not find machine-id or root UUID in limine.conf")
+    sys.exit(1)
+
+# Insert VFIO entry after the first //linux-cachyos entry's cmdline
+# Find the cmdline line of the first linux-cachyos entry
+pattern = r'(  cmdline: [^\n]+\n)(?=\s*//)'
+replacement = r'\1' + f"""  //linux-cachyos-vfio
+  ### Manual VFIO entry - GPU passthrough
+  comment: GPU Passthrough (VFIO)
+  comment: kernel-id=linux-cachyos-vfio
+  protocol: linux
+  module_path: boot():/{mid.group(1)}/linux-cachyos/initramfs-linux-cachyos
+  path: boot():/{mid.group(1)}/linux-cachyos/vmlinuz-linux-cachyos
+  cmdline: quiet nowatchdog splash rw rootflags=subvol=/@ root=UUID={root_uuid.group(1)} iommu=pt vfio-pci.ids=10de:249d,10de:228b
+
+"""
+
+new_content = re.sub(pattern, replacement, content, count=1)
+
+with open(LIMINE_CONF, 'w') as f:
+    f.write(new_content)
+print("    VFIO Limine entry added")

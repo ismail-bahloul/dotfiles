@@ -1,0 +1,51 @@
+# Run fastfetch only in interactive terminals
+if [[ $- == *i* ]]; then
+  fastfetch
+fi
+
+# Add local bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+source /usr/share/cachyos-zsh-config/cachyos-config.zsh
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# --- p10k prompt: ~ and ❯ follow the Material You accent of the wallpaper ---
+# The colors are computed once (material-you-prompt.py, triggered by
+# kde-material-you-colors) then cached: here we only "source" the
+# file -> no process launched on every prompt.
+_prompt_material() {
+  local cache="$HOME/.cache/material-you/prompt.zsh"
+  [[ -f "$cache" ]] && source "$cache"
+}
+_prompt_material
+[[ " ${precmd_functions[*]} " == *" _prompt_material "* ]] || precmd_functions+=(_prompt_material)
+
+alias ff='fastfetch'
+alias material-refresh='$HOME/.local/bin/material-you-refresh'
+
+# Source local secrets (API keys, tokens) — not versioned
+[[ -f ~/.config/zsh/secrets ]] && source ~/.config/zsh/secrets
+
+# --- Boot to Windows (via Limine) ---
+alias ww="limine-boot-win"
+
+# --- Boot to VFIO kernel (GPU passthrough) ---
+alias vv="limine-boot-vfio"
+
+# --- Boot to default Linux kernel ---
+alias ll="limine-boot-linux"
+
+# --- Backup & Power ---
+alias backup="backup-data"
+alias power="sudo power-profile info"
+alias balanced="sudo power-profile balanced && sudo power-profile info"
+alias perf="sudo power-profile perf && sudo power-profile info"

@@ -1,0 +1,15 @@
+#!/bin/bash
+# umount-shared — cleanly unmounts the SHARED partition (NTFS).
+# Do this before rebooting into Windows (avoids leaving the FS "dirty").
+set -eu
+
+MP="${HOME}/SHARED"
+
+if ! mountpoint -q "$MP"; then
+  echo "nothing to unmount ($MP is not mounted)"
+  exit 0
+fi
+
+sync
+sudo umount "$MP"
+echo "unmounted: $MP"

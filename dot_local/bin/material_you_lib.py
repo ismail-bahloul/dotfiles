@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""material_you_lib — single source of truth for the Material You palette.
+
+Reads the Konsole colorscheme that `kde-material-you-colors` regenerates on every
+wallpaper change (MaterialYou.colorscheme, fallback MaterialYouAlt), and exposes
+the palette. Imported by the generators (kitty/btop/zed/prompt) via
+`import material_you_lib` — the file is deployed next to them in
+~/.local/bin, so sys.path[0] finds it automatically.
+
+This file is NOT executable_ : chezmoi deploys it as-is (non-executable),
+it is not a command.
+"""
+import configparser
+import os
+
+_SCHEMES = [
+    "~/.local/share/konsole/MaterialYou.colorscheme",
+    "~/.local/share/konsole/MaterialYouAlt.colorscheme",
+]
+
+
+def scheme_path():
+    """Path of the available colorscheme, or None."""
+    for p in _SCHEMES:
+        p = os.path.expanduser(p)
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def _hex(rgb):
+    r, g, b = rgb.strip().split(",")
+    return "#%02x%02x%02x" % (int(r), int(g), int(b))
+
+
+def palette(path=None):
+    """Returns {'bg','fg','base'[8],'intense'[8]} or None if absent."""
+    p = path or scheme_path()
+    if not p:
+        return None
+    c = configparser.ConfigParser()
+    c.read(p)
+
+    def col(section, fallback="0,0,0"):
+        return _hex(c.get(section, "Color", fallback=fallback))
+
+    return {
+        "bg": col("Background"),
+        "fg": col("Foreground"),
+        "base": [col("Color%d" % i) for i in range(8)],
+        "intense": [col("Color%dIntense" % i) for i in range(8)],
+    }
+
+
+def palette_or_die():
+    """Like palette() but exits with a message if the colorscheme is missing."""
+    p = palette()
+    if not p:
+        raise SystemExit("Konsole MaterialYou colorscheme not found")
+    return p
+
+
+def mix(a, b, t):
+    """Linear blend of two hex colors (#rrggbb), t=0 -> a, t=1 -> b."""
+    ar, ag, ab = int(a[1:3], 16), int(a[3:5], 16), int(a[5:7], 16)
+    br, bg, bb = int(b[1:3], 16), int(b[3:5], 16), int(b[5:7], 16)
+    return "#%02x%02x%02x" % (
+        round(ar + (br - ar) * t),
+        round(ag + (bg - ag) * t),
+        round(ab + (bb - ab) * t),
+    )

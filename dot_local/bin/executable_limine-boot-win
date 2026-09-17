@@ -1,0 +1,12 @@
+#!/bin/bash
+# One-time boot to Windows via UEFI BootNext (dynamic ID lookup)
+WIN_ID=$(efibootmgr -v 2>/dev/null | grep -i "Windows[^_]\|Windows Boot Manager" | grep -v "cachyos\|grub" | head -1 | sed 's/Boot\([0-9a-fA-F]*\).*/\1/')
+
+if [ -z "$WIN_ID" ]; then
+  echo "Error: Windows boot entry not found"
+  exit 1
+fi
+
+sudo efibootmgr --bootnext "$WIN_ID" > /dev/null 2>&1
+echo "Booting Windows (BootNext $WIN_ID)..."
+sudo reboot

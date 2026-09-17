@@ -1,0 +1,31 @@
+#!/bin/bash
+# One-time boot to default Linux kernel (linux-cachyos)
+LIMINE_CONF="/boot/limine.conf"
+LIMINE_ID=$(efibootmgr -v 2>/dev/null | grep -i "Limine" | head -1 | sed 's/Boot\([0-9a-fA-F]*\).*/\1/')
+EFIVAR_PATH=$(sudo find /sys/firmware/efi/efivars -name "LimineLastBootedEntry-*" 2>/dev/null | head -1)
+
+if [ -z "$LIMINE_ID" ]; then
+  echo "Error: Limine boot entry not found"
+  exit 1
+fi
+
+if ! sudo grep -qm1 '//linux-cachyos$' "$LIMINE_CONF"; then
+  echo "Linux entry not found in $LIMINE_CONF"
+  exit 1
+fi
+
+# Find entry index (dynamic, supports multiple kernels)
+ENTRY=$(sudo sed -n '/^\s*\/\/linux-cachyos$/q;p' "$LIMINE_CONF" | grep -cP '^\s*//[^/]')
+
+# Set Limine default + EFI var
+sudo sed -i "s/^default_entry: [0-9]*/default_entry: $ENTRY/" "$LIMINE_CONF"
+sudo chattr -i "$EFIVAR_PATH" 2>/dev/null
+sudo /usr/bin/python3 -c "
+import os
+os.write(os.open('$EFIVAR_PATH', os.O_WRONLY), b'\x07\x00\x00\x00CachyOS/linux-cachyos\x00')
+" 2>/dev/null
+
+# Boot Limine via UEFI BootNext
+sudo efibootmgr --bootnext "$LIMINE_ID" > /dev/null 2>&1
+echo "Booting Linux (entry $ENTRY)..."
+sudo reboot

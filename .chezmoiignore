@@ -1,0 +1,25 @@
+# .chezmoiignore — files in the source dir that chezmoi should NOT deploy
+# By default, only files with dot_ prefix are deployed to ~/
+# This file explicitly excludes non-deployable assets
+
+my-nbfc.json
+packages.pacman
+packages.aur
+README.md
+LICENSE
+validate.sh
+install.sh
+test.sh
+.lib_logging.sh
+
+# System files installed by run_once_11-boot-tuning.sh (not deployed to ~/)
+etc
+
+# Investigation notes + evidence, kept for the record (not deployed to ~/)
+docs
+
+# Windows-side helpers (not deployed to ~/)
+win
+
+# Local secrets (API keys, tokens) — never versioned
+dot_config/zsh/secrets

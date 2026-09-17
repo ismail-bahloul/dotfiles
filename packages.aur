@@ -1,0 +1,29 @@
+# =============================================================================
+# packages.aur — AUR packages (installed via paru)
+# Installed via: run_once_01-packages.sh
+# =============================================================================
+
+# --- Pro Audio ---------------------------------------------------------------
+airwindows-consolidated-bin
+tal-reverb4-clap-bin
+zl-compressor-bin
+zl-equalizer-bin
+# nbfc-linux                # built via run_once_03-nbfc.sh (fork ismail-bahloul)
+# nbfc-qt                   # built via run_once_03-nbfc.sh (fork ismail-bahloul)
+
+# --- Applications ------------------------------------------------------------
+vesktop-bin                 # Discord with native Wayland support
+upscayl-bin
+shutter-encoder-bin
+zapzap                      # WhatsApp
+pcloud-drive
+
+# --- AMD Hardware ------------------------------------------------------------
+ryzenadj
+ryzen_smu-dkms-git
+
+# --- GPU Passthrough ---------------------------------------------------------
+looking-glass          # Looking Glass (IVSHMEM host client)
+
+# --- Peripherals -------------------------------------------------------------
+logiops                # Logitech mouse config (MX Master 3S)

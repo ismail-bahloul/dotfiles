@@ -1,0 +1,90 @@
+#!/bin/bash
+# backup-data — rsync DATA → CRUCIAL X8
+# Clean, modern output with progress feedback
+set -uo pipefail
+
+# ─── Colors ──────────────────────────────────────────────────────────────────
+RESET='\033[0m'
+BOLD='\033[1m'
+DIM='\033[2m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+
+# ─── Logging helpers ─────────────────────────────────────────────────────────
+log_section() {
+  local title="$1"
+  local left="━━━ ${title} "
+  local term_width="${COLUMNS:-80}"
+  local dash_count=$(( term_width - ${#left} - 1 ))
+  [ "$dash_count" -lt 4 ] && dash_count=4
+  printf "\n${BOLD}${left}${RESET}"
+  printf '─%.0s' $(seq 1 "$dash_count")
+  echo ""
+}
+
+log_info()   { echo -e "  ${BLUE}→${RESET} $1"; }
+log_pass()   { echo -e "  ${GREEN}✔${RESET} $1"; }
+log_fail()   { echo -e "  ${RED}✘${RESET} $1"; }
+log_warn()   { echo -e "  ${YELLOW}⚠${RESET} $1"; }
+log_detail() { echo -e "  ${DIM}  • $1${RESET}"; }
+
+# ─── Variables ───────────────────────────────────────────────────────────────
+SOURCE="$HOME/DATA/"
+START=$(date +%s)
+
+# ─── Find destination ────────────────────────────────────────────────────────
+log_section "Backup DATA"
+
+DEST=$(findmnt -n -o TARGET -L "CRUCIAL X8" 2>/dev/null)
+if [ -n "$DEST" ]; then
+  DEST="$DEST/Ismail/DATA_BACKUP/"
+else
+  DEST="/run/media/$USER/CRUCIAL X8/Ismail/DATA_BACKUP/"
+fi
+
+if [ ! -d "$DEST" ]; then
+  log_fail "CRUCIAL X8 not mounted"
+  log_detail "Expected at: $DEST"
+  exit 1
+fi
+
+log_info "Disk:  $HOME/DATA/  →  CRUCIAL X8/Ismail/DATA_BACKUP/"
+
+# Show size info inline
+DATA_SIZE=$(du -sh "$SOURCE" 2>/dev/null | awk '{print $1}')
+FREE_SPACE=$(df -h "$DEST" 2>/dev/null | awk 'NR==2{print $4}')
+log_detail "Data: ${DATA_SIZE}  ·  Free: ${FREE_SPACE}"
+echo ""
+
+# ─── Rsync ───────────────────────────────────────────────────────────────────
+set +e
+rsync -a --no-group --no-links --partial --info=progress2 \
+  --exclude='node_modules/' \
+  --exclude='venv/' \
+  --exclude='.venv/' \
+  --exclude='__pycache__/' \
+  --exclude='.Trash-1000/' \
+  --exclude='08_VM/Iso_files/' \
+  --exclude='.git/' \
+  "$SOURCE" "$DEST" > >(grep -v "skipping non-regular")
+EXIT_CODE=$?
+set -e
+
+# ─── Result ──────────────────────────────────────────────────────────────────
+END=$(date +%s)
+ELAPSED=$((END - START))
+
+echo ""
+log_section "Result"
+
+if [ "$EXIT_CODE" -eq 0 ] || [ "$EXIT_CODE" -eq 24 ]; then
+  log_pass "Done  ($((ELAPSED/60))m $((ELAPSED%60))s)"
+else
+  log_warn "Finished (exit ${EXIT_CODE}) — $((ELAPSED/60))m $((ELAPSED%60))s"
+fi
+
+# Footer timestamp — dimmed one-liner
+echo -e "  ${DIM}── $(date) ──${RESET}"
+echo ""

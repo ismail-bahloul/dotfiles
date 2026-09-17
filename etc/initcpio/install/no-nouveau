@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Drop the nouveau DRM driver and its per-chipset NVIDIA GSP firmware from the
+# initramfs.
+#
+# Why: the `kms` hook adds every DRM driver matching detected hardware, and the
+# autodetect cache resolves the NVIDIA GPU modalias to BOTH nvidia and nouveau.
+# nouveau's modinfo then declares the GSP firmware of every supported GPU
+# generation (~140 MiB), which lands uncompressed in the early CPIO.
+#
+# This machine uses the proprietary nvidia driver (nouveau is blacklisted in
+# /usr/lib/modprobe.d/nvidia-utils.conf), so nouveau is never loaded.
+
+help() {
+    cat <<HELPEOF
+Removes nouveau and its per-chipset firmware from the image to keep ~140 MiB
+out of the early CPIO. Must run after the 'kms' hook.
+
+This hook is machine-specific: it assumes the proprietary nvidia driver is used
+for NVIDIA GPUs.
+HELPEOF
+}
+
+build() {
+    local p d
+
+    # 1. remove nouveau from the module paths that install_modules() will copy.
+    #    (module files do not exist in BUILDROOT yet at hook time: add_module()
+    #    only records their paths.)
+    for p in "${!_modpaths[@]}"; do
+        [[ "$p" == */gpu/drm/nouveau/* ]] && unset '_modpaths[$p]'
+    done
+
+    # 2. drop nouveau's per-chipset firmware, which add_firmware() already copied
+    #    into BUILDROOT. The proprietary driver's firmware lives in a numeric
+    #    directory (/usr/lib/firmware/nvidia/<version>/) and must be kept.
+    for d in "$BUILDROOT"/usr/lib/firmware/nvidia/*; do
+        [[ -e "$d" ]] || continue
+        case "${d##*/}" in
+            [0-9]*) : ;;            # proprietary driver firmware - keep
+            *)      rm -rf "$d" ;;  # nouveau per-chipset firmware - drop
+        esac
+    done
+}

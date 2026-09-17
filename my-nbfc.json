@@ -1,0 +1,149 @@
+{
+  "NotebookModel": "my-nbfc",
+  "Author": "Isma",
+  "Comment": "PATH: /usr/share/nbfc/configs/. MinSpeed 12% at first step prevents the yoyo effect (fan oscillating 0↔12% around 48-50°C). DownThreshold=0 on step 0 ensures the fan never fully stops once spun up.",
+  "EcPollInterval": 1000,
+  "ReadWriteWords": false,
+  "CriticalTemperature": 100,
+  "FanConfigurations": [
+    {
+      "ReadRegister": 46,
+      "WriteRegister": 44,
+      "MinSpeedValue": 0,
+      "MaxSpeedValue": 100,
+      "IndependentReadMinMaxValues": false,
+      "MinSpeedValueRead": 0,
+      "MaxSpeedValueRead": 0,
+      "ResetRequired": true,
+      "FanSpeedResetValue": 255,
+      "FanDisplayName": "CPU fan",
+      "TemperatureThresholds": [
+        {
+          "UpThreshold": 50,
+          "DownThreshold": 0,
+          "FanSpeed": 12
+        },
+        {
+          "UpThreshold": 60,
+          "DownThreshold": 49,
+          "FanSpeed": 16
+        },
+        {
+          "UpThreshold": 65,
+          "DownThreshold": 58,
+          "FanSpeed": 20
+        },
+        {
+          "UpThreshold": 69,
+          "DownThreshold": 63,
+          "FanSpeed": 24
+        },
+        {
+          "UpThreshold": 74,
+          "DownThreshold": 67,
+          "FanSpeed": 28
+        },
+        {
+          "UpThreshold": 79,
+          "DownThreshold": 71,
+          "FanSpeed": 35
+        },
+        {
+          "UpThreshold": 83,
+          "DownThreshold": 76,
+          "FanSpeed": 40
+        },
+        {
+          "UpThreshold": 87,
+          "DownThreshold": 80,
+          "FanSpeed": 50
+        },
+        {
+          "UpThreshold": 91,
+          "DownThreshold": 85,
+          "FanSpeed": 65
+        },
+        {
+          "UpThreshold": 94,
+          "DownThreshold": 89,
+          "FanSpeed": 80
+        },
+        {
+          "UpThreshold": 100,
+          "DownThreshold": 92,
+          "FanSpeed": 100
+        }
+      ]
+    },
+    {
+      "ReadRegister": 47,
+      "WriteRegister": 45,
+      "MinSpeedValue": 0,
+      "MaxSpeedValue": 100,
+      "IndependentReadMinMaxValues": false,
+      "MinSpeedValueRead": 0,
+      "MaxSpeedValueRead": 0,
+      "ResetRequired": true,
+      "FanSpeedResetValue": 255,
+      "FanDisplayName": "GPU fan",
+      "Sensors": ["@GPU"],
+      "TemperatureThresholds": [
+        {
+          "UpThreshold": 50,
+          "DownThreshold": 0,
+          "FanSpeed": 12
+        },
+        {
+          "UpThreshold": 60,
+          "DownThreshold": 49,
+          "FanSpeed": 16
+        },
+        {
+          "UpThreshold": 65,
+          "DownThreshold": 58,
+          "FanSpeed": 22
+        },
+        {
+          "UpThreshold": 69,
+          "DownThreshold": 63,
+          "FanSpeed": 26
+        },
+        {
+          "UpThreshold": 74,
+          "DownThreshold": 67,
+          "FanSpeed": 28
+        },
+        {
+          "UpThreshold": 79,
+          "DownThreshold": 71,
+          "FanSpeed": 35
+        },
+        {
+          "UpThreshold": 83,
+          "DownThreshold": 76,
+          "FanSpeed": 45
+        },
+        {
+          "UpThreshold": 87,
+          "DownThreshold": 80,
+          "FanSpeed": 55
+        },
+        {
+          "UpThreshold": 91,
+          "DownThreshold": 85,
+          "FanSpeed": 65
+        },
+        {
+          "UpThreshold": 94,
+          "DownThreshold": 89,
+          "FanSpeed": 80
+        },
+        {
+          "UpThreshold": 100,
+          "DownThreshold": 92,
+          "FanSpeed": 100
+        }
+      ]
+    }
+  ]
+}
