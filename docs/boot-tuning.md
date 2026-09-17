@@ -1,32 +1,21 @@
 # Boot tuning
 
-Measured with `systemd-analyze` on this machine (HP OMEN 15-en1xxx). Everything
-below except the UEFI boot order lives under `/etc` and is applied by
-`run_once_11-boot-tuning.sh`; the boot order is machine state (NVRAM), not
-something a dotfiles repo can version.
+On this machine (HP OMEN 15-en1xxx). Everything below except the UEFI boot order
+lives under `/etc` and is applied by `run_once_11-boot-tuning.sh`; the boot order
+is machine state (NVRAM), not something a dotfiles repo can version.
 
-| Phase | Value |
-|---|---:|
-| firmware | 9.20 s |
-| loader | 1.25 s |
-| kernel | 0.87 s |
-| initrd | 6.46 s |
-| userspace | 5.36 s |
-| **total** | **23.13 s** |
+> A note on numbers: `systemd-analyze`'s *firmware* phase counts from power-on,
+> so time spent sitting in the BIOS setup menus is billed to POST. Any figure
+> captured after a BIOS visit is meaningless. That is why this page describes
+> what was changed rather than how many seconds it saved.
 
-For comparison, the run right before the UEFI boot order was fixed reported
-`firmware 100.20 s + loader 1.34 s + kernel 0.88 s + initrd 6.49 s + userspace
-5.32 s = 114.22 s`.
-
-- **Dead UEFI boot entries removed, Limine kept early in `BootOrder`.** The
-  firmware burned **~91 s** of POST on two entries that sat ahead of the real
+- **Dead UEFI boot entries removed.** Two stale entries sat ahead of the real
   one: a `Limine` pointing at a GPT partition that no longer existed, and a
-  "Windows Boot Manager" label pointing at a deleted
-  `\EFI\cachyos\grubx64.efi`. Moving Limine ahead of them alone dropped firmware
-  time from 100.20 s to 9.20 s; both entries were then deleted so they cannot be
-  promoted back in front. The HP firmware re-promotes the USB entry to the front
-  on its own — that one fails fast and is left in place. Check with `efibootmgr`,
-  repair with `efibootmgr -o`.
+  "Windows Boot Manager" label pointing at a deleted `\EFI\cachyos\grubx64.efi`.
+  They are gone (both were unbootable) and Limine is kept early in `BootOrder`
+  so it cannot be shadowed. The HP firmware re-promotes the USB entry to the
+  front on its own — that one fails fast and is left in place. Check with
+  `efibootmgr`, repair with `efibootmgr -o`.
 - **nouveau and its per-chipset NVIDIA firmware dropped from the initramfs**
   (`etc/initcpio/install/no-nouveau`). The `kms` hook resolves the NVIDIA GPU
   modalias to *both* `nvidia` and `nouveau`, and nouveau's `modinfo` declares the
@@ -50,10 +39,10 @@ For comparison, the run right before the UEFI boot order was fixed reported
 
 ## Still on the table
 
-The initrd phase (6.46 s) is now the largest. The journal shows a ~2.5 s gap
-with no log lines right after `Finished Plymouth switch root service`, before
-`amdgpu` initialises. Plymouth's `splash` is a plausible suspect — not
-investigated, and worth at most ~2.5 s.
+The initrd phase is the largest one left. The journal shows a ~2.5 s gap with no
+log lines right after `Finished Plymouth switch root service`, before `amdgpu`
+initialises. Plymouth's `splash` is a plausible suspect — not investigated, and
+worth at most a couple of seconds.
 
 ## Tooling gotcha
 

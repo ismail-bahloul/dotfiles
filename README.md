@@ -11,10 +11,10 @@ power and fan management, a slimmed initramfs, and `validate.sh` to check that e
 piece of it actually landed.
 
 Most of the value is in the things that took measurement to get right, and those
-are written up in [`docs/`](docs/) — boot time, the theming chain, and the
-working notes. The firmware and power investigation (what the BIOS settings
-actually do, why undervolting is impossible on this machine) lives in its own
-repository:
+are written up in [`docs/`](docs/) — the initramfs and boot tweaks, the theming
+chain, and the working notes. The firmware and power investigation (what the BIOS
+settings actually do, why undervolting is impossible on this machine) lives in
+its own repository:
 [hp-omen-15-en1xxx-firmware](https://github.com/ismail-bahloul/hp-omen-15-en1xxx-firmware).
 
 ## Installation
@@ -55,7 +55,7 @@ dotfiles/
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # why the config here is the way it is
 │   ├── README.md                             # index
-│   ├── boot-tuning.md                        # boot time: what was done, measured
+│   ├── boot-tuning.md                        # initramfs slimming + UEFI boot entries
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
 │   └── notes.md                              # versioned-vs-not, audio, SSH keys
 ├── my-nbfc.json                       # custom fan profile (NBFC)
