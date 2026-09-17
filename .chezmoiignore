@@ -18,6 +18,9 @@ etc
 # Investigation notes + evidence, kept for the record (not deployed to ~/)
 docs
 
+# Git/GitHub metadata for the repo itself (not deployed to ~/)
+.gitattributes
+
 # Windows-side helpers (not deployed to ~/)
 win
 
