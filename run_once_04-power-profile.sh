@@ -71,6 +71,36 @@ OnUnitActiveSec=5min
 WantedBy=timers.target
 EOF
 
+# Write service for the immediate re-apply watcher.
+# NB 1: the timer above polls every 5 min, but writing platform_profile makes
+#   the EC re-apply its own limits within a second, so the machine could sit
+#   clobbered for almost the whole interval. inotify does work on that sysfs
+#   attribute, so power-profile-watch reacts to the write instead of polling.
+# NB 2: it delegates to `systemctl start power-profile.service`, so the profile
+#   keeps a single implementation and cannot drift. The timer is kept as a
+#   backstop for changes that do NOT touch platform_profile.
+WATCH_TARGET="$HOME/.local/bin/power-profile-watch"
+if [ ! -f "$WATCH_TARGET" ]; then
+  cp "$SCRIPT_DIR/dot_local/bin/executable_power-profile-watch" "$WATCH_TARGET"
+fi
+chmod +x "$WATCH_TARGET"
+sudo ln -sf "$WATCH_TARGET" /usr/local/bin/power-profile-watch
+
+sudo tee /etc/systemd/system/power-profile-watch.service > /dev/null << 'EOF'
+[Unit]
+Description=Power profile - re-apply the instant platform_profile is written
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/power-profile-watch
+Restart=always
+RestartSec=2
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 # Write udev rule for AC plug/unplug.
 # NB: uses `guard`, not `auto`: `auto` always re-applies and would silently drop
 # a manually selected PERF mode (4.4 GHz, GPU unlocked) on every AC transition.
@@ -92,9 +122,10 @@ fi
 # not restart an already-active timer, so a changed schedule would never be
 # picked up. Restart both unconditionally.
 sudo systemctl daemon-reload
-sudo systemctl enable power-profile.service power-profile.timer
+sudo systemctl enable power-profile.service power-profile.timer power-profile-watch.service
 sudo systemctl restart power-profile.service
 sudo systemctl restart power-profile.timer
+sudo systemctl restart power-profile-watch.service
 
 # Enable NVIDIA services (suspend/resume only)
 sudo systemctl enable nvidia-suspend.service nvidia-resume.service 2>/dev/null || true

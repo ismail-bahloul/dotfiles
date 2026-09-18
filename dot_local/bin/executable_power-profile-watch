@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+# =============================================================================
+# power-profile-watch — re-apply the power profile the instant it is clobbered
+#
+# Two independent ways the limits can leave the profile values, and they need
+# different detection because their signatures differ.
+#
+# 1. A write to /sys/class/platform-profile/platform-profile-0/profile. Cheap and
+#    reliable to catch, because inotify does work on that attribute. The write is
+#    watched regardless of *why* the limits move: a clean test with every
+#    power-profile unit stopped showed the write alone does not move them, so it
+#    is not the cause. See firmware-limits.md, "The three claims, in order".
+#
+# 2. The drift, with NOTHING written. Only caught once this watcher was
+#    instrumented well enough to log it with timestamps:
+#
+#        19:10:34  baseline after startup apply: 35/42/35
+#        19:11:21  limits moved 35/42/35 -> 50/42/35   (STAPM 35 -> 50)
+#        19:12:06  limits moved 35/42/54 -> 35/42/35   (PPT slow 35 -> 54)
+#
+#    It follows an apply within a minute or two, then settles. No writer was
+#    identified and no EC register carries those values, so it is invisible to
+#    inotify and must be detected by reading the limits. The mechanism is an open
+#    question; the EC re-asserting a stored limit is *not* the explanation.
+#
+#    A `54/65/54` reading is ambiguous: apply_perf() in
+#    /usr/local/bin/power-profile writes exactly that, so the value alone does
+#    not say whether PERF was applied or the drift landed on all three fields.
+#
+# Reading the limits is nearly free: the SMU PM table is one read() of 2372
+# bytes, no SMU command, no ACPI call. So polling it costs far less than running
+# the profile itself (measured: 0.13 s), and the profile is only applied when the
+# values actually move.
+#
+# The apply is delegated to `systemctl start power-profile.service`, so there is
+# exactly one implementation of the profile and this cannot drift from it.
+# power-profile.timer stays as a backstop for anything neither path notices.
+# =============================================================================
+
+from __future__ import annotations
+
+import ctypes
+import ctypes.util
+import os
+import select
+import signal
+import struct
+import subprocess
+import sys
+import time
+
+PROFILE = "/sys/class/platform-profile/platform-profile-0/profile"
+SERVICE = "power-profile.service"
+PM_TABLE = "/sys/kernel/ryzen_smu_drv/pm_table"
+PM_LEN = 2372
+
+IN_MODIFY = 0x2
+IN_CLOSE_WRITE = 0x8
+IN_NONBLOCK = 0o4000
+
+# One write produces MODIFY then CLOSE_WRITE; coalesce bursts into one apply.
+DEBOUNCE = 0.4
+# How often to read the limits. A read() of 2.4 KiB — negligible.
+POLL = 1.0
+# Never apply more often than this, so a flapping EC cannot spin the service.
+MIN_INTERVAL = 3.0
+
+# The limit fields we watch, and how coarsely. Floats from the PM table carry
+# representation noise (42.000003 for 42), so compare rounded values.
+WATCH = ((0x00, "STAPM"), (0x08, "PPT fast"), (0x10, "PPT slow"), (0x40, "Tctl"))
+
+_running = True
+_last_apply = 0.0
+
+
+def _stop(signum, frame):
+    global _running
+    _running = False
+
+
+def drain(fd):
+    """Read and discard every pending event, so the next select() blocks."""
+    try:
+        while os.read(fd, 4096):
+            pass
+    except (BlockingIOError, OSError):
+        pass
+
+
+def limits() -> tuple | None:
+    """Rounded (STAPM, fast, slow, Tctl) from the PM table, or None."""
+    try:
+        with open(PM_TABLE, "rb") as fh:
+            raw = fh.read(PM_LEN)
+    except OSError:
+        return None
+    if len(raw) < PM_LEN:
+        return None
+    vals = struct.unpack("<%df" % (PM_LEN // 4), raw)
+    return tuple(round(vals[off // 4], 1) for off, _ in WATCH)
+
+
+def describe(lim: tuple | None) -> str:
+    if lim is None:
+        return "limits unavailable"
+    return "/".join("%g" % v for v in lim[:3])
+
+
+def apply_profile(reason: str) -> bool:
+    """Run the profile. Returns True if it actually ran, False if debounced."""
+    global _last_apply
+    now = time.monotonic()
+    if now - _last_apply < MIN_INTERVAL:
+        return False
+    _last_apply = now
+
+    start = time.monotonic()
+    try:
+        r = subprocess.run(["systemctl", "start", SERVICE],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except OSError as e:
+        print("cannot run systemctl: %s" % e, file=sys.stderr, flush=True)
+        return False
+    dt = time.monotonic() - start
+    if r.returncode == 0:
+        print("re-applied after %s in %.2fs" % (reason, dt), flush=True)
+    else:
+        print("FAILED to re-apply after %s: %s"
+              % (reason, r.stderr.decode(errors="replace").strip()),
+              file=sys.stderr, flush=True)
+    return True
+
+
+def main():
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
+
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    fd = libc.inotify_init1(IN_NONBLOCK)
+    if fd < 0:
+        sys.exit("power-profile-watch: inotify_init1 failed")
+    if libc.inotify_add_watch(fd, PROFILE.encode(),
+                              IN_MODIFY | IN_CLOSE_WRITE) < 0:
+        sys.exit("power-profile-watch: cannot watch %s (errno %d)"
+                 % (PROFILE, ctypes.get_errno()))
+
+    known = limits()
+    print("watching %s and the SMU limits (now %s)"
+          % (PROFILE, describe(known)), flush=True)
+
+    # Establish a known-good state before watching for changes. Without this, a
+    # watcher started while the limits are already off-target would adopt the
+    # wrong values as "known" and never correct them -- it only reacts to
+    # changes. Safe with respect to a manual PERF mode: `power-profile guard`
+    # refuses to apply while the performance governor is active.
+    apply_profile("startup")
+    known = limits()
+    print("baseline after startup apply: %s" % describe(known), flush=True)
+
+    while _running:
+        # 1. an explicit platform_profile write
+        r, _, _ = select.select([fd], [], [], POLL)
+        if r:
+            drain(fd)
+            try:
+                with open(PROFILE) as fh:
+                    value = fh.read().strip()
+            except OSError:
+                value = "?"
+            time.sleep(DEBOUNCE)
+            drain(fd)
+            apply_profile("platform_profile -> %r" % value)
+            known = limits()
+            continue
+
+        # 2. the EC re-asserting silently
+        cur = limits()
+        if cur is not None and known is not None and cur != known:
+            print("limits moved %s -> %s" % (describe(known), describe(cur)),
+                  flush=True)
+            # Only adopt the new value if we actually re-applied. If the apply
+            # was debounced, keep the old value so the next tick retries -- 
+            # otherwise a single debounced event would leave the drift in place
+            # forever.
+            if apply_profile("silent limit change"):
+                known = limits()
+        elif cur is not None:
+            known = cur
+
+
+if __name__ == "__main__":
+    main()
