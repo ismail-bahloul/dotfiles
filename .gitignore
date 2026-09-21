@@ -1,0 +1,4 @@
+# Python bytecode caches (generated when an executable_* python script is
+# imported rather than run directly). Never commit build artifacts.
+__pycache__/
+*.py[cod]

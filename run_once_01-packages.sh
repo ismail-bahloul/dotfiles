@@ -18,7 +18,13 @@ SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
 PACMAN_LIST="$SCRIPT_DIR/packages.pacman"
 AUR_LIST="$SCRIPT_DIR/packages.aur"
 
-# Ensure passwordless sudo for wheel group (extends installer behavior)
+# Ensure passwordless sudo for the wheel group. This is deliberate and
+# load-bearing: chezmoi runs every run_once_* script non-interactively, so a
+# sudo password prompt would hang `chezmoi apply`. The sudo keepalive in
+# install.sh only covers the initial bootstrap. On this single-user laptop
+# "%wheel" is effectively the only account, so this is the intended tradeoff.
+# (Narrowing it to a command allowlist would have to cover the whole
+# pacman/paru/systemctl/tee/install/sed/udevadm surface -- not worth it.)
 if ! sudo grep -q "%wheel.*NOPASSWD" /etc/sudoers.d/* 2>/dev/null; then
   echo "%wheel ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/99-wheel-nopasswd > /dev/null
 fi

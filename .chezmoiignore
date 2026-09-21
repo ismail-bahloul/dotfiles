@@ -20,6 +20,7 @@ docs
 
 # Git/GitHub metadata for the repo itself (not deployed to ~/)
 .gitattributes
+.gitignore
 
 # Windows-side helpers (not deployed to ~/)
 win
