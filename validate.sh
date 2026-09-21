@@ -147,6 +147,16 @@ if grep -qE '^[[:space:]]*MODULES\+=\(.*nvidia' /etc/mkinitcpio.conf.d/10-chwd.c
 else
   log_pass "NVIDIA modules excluded from the initramfs"
 fi
+if grep -qE '^[[:space:]]*MODULES\+=.*amdgpu' /etc/mkinitcpio.conf.d/30-amdgpu-early.conf 2>/dev/null; then
+  log_pass "amdgpu early KMS configured"
+else
+  log_fail "amdgpu early KMS drop-in missing (/etc/mkinitcpio.conf.d/30-amdgpu-early.conf)"
+fi
+if [ "$(systemctl is-enabled systemd-binfmt.service 2>/dev/null)" = "masked" ]; then
+  log_pass "systemd-binfmt masked (on-demand automount)"
+else
+  log_warn "systemd-binfmt not masked"
+fi
 SNAP_MAX=$(grep -E '^MAX_SNAPSHOT_ENTRIES=' /etc/limine-snapper-sync.conf 2>/dev/null | cut -d= -f2)
 if [ "$SNAP_MAX" = "8" ]; then
   log_pass "MAX_SNAPSHOT_ENTRIES=8"
