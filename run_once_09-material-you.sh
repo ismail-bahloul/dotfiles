@@ -72,8 +72,13 @@ python3 "$HOME/.local/bin/material-you-prompt.py" || true
 # dynamically by Zed (agent permissions) -> we do not version it, we set the
 # single key we care about, without touching the rest.
 if [ -f "$ZS" ]; then
-  if grep -q '"theme": "Material You"' "$ZS"; then
+  if grep -q '"theme": "Material You"' "$ZS" || grep -q '"dark": "Material You"' "$ZS"; then
     log_skip "Zed theme already on \"Material You\""
+  elif grep -q '"theme": {' "$ZS"; then
+    # Recent Zed writes the key as an object {mode, light, dark}; the custom theme
+    # has no light/dark variants, so point both at it.
+    sed -i 's/"light": "[^"]*"/"light": "Material You"/; s/"dark": "[^"]*"/"dark": "Material You"/' "$ZS"
+    log_pass "Zed theme -> Material You (light/dark)"
   elif grep -q '"theme"' "$ZS"; then
     sed -i 's/"theme": "[^"]*"/"theme": "Material You"/' "$ZS"
     log_pass "Zed theme -> Material You"
