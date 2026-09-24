@@ -78,6 +78,7 @@ python-virtualenv
 
 # --- Applications ------------------------------------------------------------
 firefox
+zed
 blender
 obs-studio
 obsidian
