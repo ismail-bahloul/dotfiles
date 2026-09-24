@@ -35,13 +35,13 @@ log_current_limits() {
 GPU_AC=1800
 GPU_AC_MIN=500   # AC frequency floor: avoids deep P8 sleep (cause of mini-freezes when launching an app)
 GPU_BAT=400
-TDP_AC=35000
+TDP_AC=28000     # AC power cap -- does the cooling (myomen15/efficiency.md)
 TDP_BAT=15000
 TEMP_AC=85
 TEMP_BAT=65
-FAST_AC=42000
+FAST_AC=36000
 FAST_BAT=18000
-FREQ_AC=3200000
+FREQ_AC=4465000  # no artificial frequency cap; the power cap binds only under load
 FREQ_BAT=2400000
 
 # ------ Performance (unlocked) ------
@@ -52,23 +52,24 @@ apply_perf() {
     write_cpu_sysfs energy_performance_preference performance
     /usr/bin/ryzenadj --stapm-limit=54000 --fast-limit=65000 --slow-limit=54000 \
              --apu-slow-limit=42000 --tctl-temp=90 || log "WARN: ryzenadj perf failed"
-    nvidia-smi -rgc > /dev/null 2>&1 || true
-    nvidia-smi -rmc > /dev/null 2>&1 || true
+    nvidia-smi -rmc > /dev/null 2>&1 || true           # memory: release the battery mem lock
+    nvidia-smi -lgc 500,2100 > /dev/null 2>&1 || true   # graphics: unlocked ceiling, floor kept (deep P8 sleep = mini-freezes)
     echo ">>> PERF mode: CPU 4.4 GHz / 54W / GPU unlocked"
     log "OK: CPU 4.4 GHz / 54W, GPU unlocked"
 }
 
 apply_ac() {
-    log "AC profile: 3.2 GHz / $((TDP_AC / 1000))W / GPU ${GPU_AC} MHz"
+    log "AC profile: no freq cap / $((TDP_AC / 1000))W / GPU ${GPU_AC} MHz"
     write_cpu_sysfs scaling_governor powersave
     write_cpu_sysfs scaling_max_freq "${FREQ_AC}"
     write_cpu_sysfs energy_performance_preference balance_power
     /usr/bin/ryzenadj --stapm-limit=${TDP_AC} --fast-limit=${FAST_AC} --slow-limit=${TDP_AC} \
              --apu-slow-limit=22000 --tctl-temp=${TEMP_AC} 2>&1 || log "WARN: ryzenadj AC failed"
+    nvidia-smi -rmc > /dev/null 2>&1 || true   # release the mem lock battery set (myomen15/dgpu-control.md)
     nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
     iw dev wlan0 set power_save off 2>/dev/null || true
-    echo ">>> AC mode: CPU 3.2 GHz / $((TDP_AC / 1000))W / GPU ${GPU_AC_MIN}–${GPU_AC} MHz (mem: dynamic)"
-    log "OK: CPU 3.2 GHz / $((TDP_AC / 1000))W, GPU ${GPU_AC_MIN}-${GPU_AC} MHz (mem: auto)"
+    echo ">>> AC mode: CPU no freq cap / $((TDP_AC / 1000))W / GPU ${GPU_AC_MIN}–${GPU_AC} MHz (mem: dynamic)"
+    log "OK: CPU no freq cap / $((TDP_AC / 1000))W, GPU ${GPU_AC_MIN}-${GPU_AC} MHz (mem: auto)"
 }
 
 apply_battery() {
