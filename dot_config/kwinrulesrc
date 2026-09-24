@@ -1,5 +1,6 @@
 [1503ce0e-1799-40f2-9ec4-efa44a851115]
 Description=Transparent_windows
+Enabled=false
 opacityactive=92
 opacityactiverule=2
 opacityinactive=92
@@ -12,6 +13,7 @@ rules=b7e4f1a2-3c5d-4e6f-8a90-1b2c3d4e5f60,1503ce0e-1799-40f2-9ec4-efa44a851115
 
 [b7e4f1a2-3c5d-4e6f-8a90-1b2c3d4e5f60]
 Description=Opaque - Firefox
+Enabled=false
 opacityactive=100
 opacityactiverule=2
 opacityinactive=100

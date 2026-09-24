@@ -28,6 +28,9 @@ every prompt** (previously: 2 `awk` per prompt).
   `kwinrulesrc`, **without `wmclass`** so it matches *all* windows — applies
   `opacity 90/90`. Konsole, Dolphin, System Settings are therefore glassy
   like the rest, by the same mechanism.
+- **Currently disabled**: both rules are versioned with `Enabled=false`, so
+  windows are opaque. Toggle them back in Window Rules (or drop the `Enabled`
+  key and `chezmoi add`) to restore the glass.
 - Adjust the level: Window Rules in Settings, or
   `kwriteconfig6 --file kwinrulesrc --group 1503ce0e-1799-40f2-9ec4-efa44a851115
   --key opacityactive 92` then `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`.
