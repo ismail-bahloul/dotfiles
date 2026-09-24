@@ -42,7 +42,7 @@ dotfiles/
 ├── run_once_06-libvirt-setup.sh      # libvirt services + groups
 ├── run_once_07-looking-glass.sh      # Looking Glass shared memory
 ├── run_once_08-kde-settings.sh       # KDE settings enforced via kwriteconfig6
-├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
+├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop hook)
 ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
 ├── run_once_11-boot-tuning.sh        # initramfs slimming + Limine snapshot cap
 ├── packages.pacman                   # official repo packages
@@ -79,7 +79,6 @@ dotfiles/
 │   │   ├── material_you_lib.py       # (internal, non-executable) shared Material You palette
 │   │   ├── kitty-material-you.py     # kitty colors ← wallpaper (Material You)
 │   │   ├── btop-material-you.py      # btop theme ← wallpaper (Material You)
-│   │   ├── zed-material-you.py       # Zed theme ← wallpaper (Material You)
 │   │   ├── material-you-prompt.py    # p10k prompt cache ← wallpaper (1x, not per prompt)
 │   │   ├── kitty-material-you-hook.sh# run by kde-material-you-colors → delegates to material-you-refresh
 │   │   └── material-you-refresh      # manual re-sync (safety net)
@@ -124,7 +123,7 @@ dotfiles/
 | `power` | Show power profile status (CPU/GPU temps, limits, fans) |
 | `balanced` | Reset to balanced profile (auto AC/battery) |
 | `perf` | Switch to performance mode (4.4 GHz / GPU unlocked) |
-| `material-refresh` | Re-sync kitty/btop/zed/prompt to current wallpaper colors |
+| `material-refresh` | Re-sync kitty/btop/prompt to current wallpaper colors |
 
 ## Vendored third-party widgets
 

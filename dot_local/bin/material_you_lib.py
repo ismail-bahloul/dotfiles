@@ -3,7 +3,7 @@
 
 Reads the Konsole colorscheme that `kde-material-you-colors` regenerates on every
 wallpaper change (MaterialYou.colorscheme, fallback MaterialYouAlt), and exposes
-the palette. Imported by the generators (kitty/btop/zed/prompt) via
+the palette. Imported by the generators (kitty/btop/prompt) via
 `import material_you_lib` — the file is deployed next to them in
 ~/.local/bin, so sys.path[0] finds it automatically.
 

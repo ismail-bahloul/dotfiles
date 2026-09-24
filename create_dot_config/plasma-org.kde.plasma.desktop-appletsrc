@@ -48,7 +48,7 @@ DialogHeight=630
 DialogWidth=810
 
 [Containments][23][Applets][26][Configuration][General]
-launchers=applications:systemsettings.desktop,applications:org.kde.konsole.desktop,preferred://filemanager,preferred://browser,applications:dev.zed.Zed.desktop,applications:code.desktop,applications:virt-manager.desktop,applications:cockos-reaper.desktop,applications:blender.desktop,applications:touchdesigner.desktop,applications:DaVinciResolve.desktop,applications:shutter-encoder.desktop
+launchers=applications:systemsettings.desktop,applications:org.kde.konsole.desktop,preferred://filemanager,preferred://browser,applications:code.desktop,applications:virt-manager.desktop,applications:cockos-reaper.desktop,applications:blender.desktop,applications:touchdesigner.desktop,applications:DaVinciResolve.desktop,applications:shutter-encoder.desktop
 
 [Containments][23][Applets][27]
 immutability=1
