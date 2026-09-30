@@ -125,30 +125,44 @@ chasing.
 **Rollback:** boot a Limine **Snapshots** entry. Those point at the pre-trim image
 saved under `limine_history/`, not the rebuilt one.
 
-### Result (measured, next boot)
+### Result (measured, boot by boot)
 
-| | before | after |
-|---|---|---|
-| firmware | 4.625 s | 4.617 s |
-| loader | 3.559 s | **1.496 s** |
-| kernel | 0.873 s | 0.876 s |
-| initrd | 7.491 s | **5.368 s** |
-| userspace | 6.361 s | **4.287 s** |
-| **total** | **22.910 s** | **16.645 s** |
+| | origin | after the firmware trim | after dropping Plymouth |
+|---|---|---|---|
+| firmware | 4.625 s | 4.617 s | 4.645 s |
+| loader | 3.559 s | **1.496 s** | 1.485 s |
+| kernel | 0.873 s | 0.876 s | 0.886 s |
+| initrd | 7.491 s | **5.368 s** | **5.036 s** |
+| userspace | 6.361 s | **4.287 s** | **4.181 s** |
+| **total** | **22.910 s** | 16.645 s | **16.235 s** |
 
-**−6.3 s, −27 %.** The loader and initrd fell as expected; the userspace line fell
-with them (less work contending in parallel). The 6 `Mode Validation Warning`
-lines on the eDP are present **identically** on the boot *before* the change, so
-the trim introduced nothing.
+**22.9 → 16.2 s, −29 %.** The firmware trim is the whole story: it took the
+initramfs from 56 to 28 MiB and the loader and initrd fell with it. Dropping
+Plymouth is worth only **−0.41 s**, not the 1.15 s its units account for on their
+own — they overlapped with other work, so most of that time was never on the
+critical path. `plymouth-start` is now skipped outright
+(`ConditionResult=no`).
 
-### What is left on the critical chain
+The 6 `Mode Validation Warning` lines on the eDP are present **identically** on
+the boot *before* the firmware trim, so nothing here introduced them.
 
-`graphical.target` is now gated by `logid.service` (a Logitech daemon, at 4.29 s),
-with `plymouth-quit.service` (4.11 s) and `run-bpftune-cgroupv2.mount` (4.11 s)
-just behind it. The `serial8250` `ttyS0..3` still settle at ~6.1 s, but async —
-they do not gate the desktop. Dropping Plymouth (`splash` + the hook) and moving
-`logid` off the chain is the remaining ~1 s; the firmware (4.6 s) is the HP POST
-and is the floor.
+### What is left, and what is not tunable
+
+- **firmware, 4.6 s** — HP POST: SEC/PEI (memory training, EC handshake, PSP/SMU,
+hardware GPU bring-up) then DXE enumeration and the boot manager. Already at its
+floor, checked against the live `Setup` store: POST Hotkey Delay (`Timeout`) = 0,
+PXE ROM (off 218) = 0, CDROM (227) = 0, floppy (228) = 0, network boot (230) = 0,
+Secure Boot (233) = 0 — and this firmware's IFR has **no Fast Boot option** at
+all. Nothing left to turn off from the OS.
+- **loader, 1.5 s** — reading 45 MiB (17 kernel + 26 initramfs) off the vfat ESP at
+~30 MB/s. That is the firmware's own EFI file I/O, not the OS; the only lever is a
+smaller image.
+- **initrd, 5.0 s / userspace, 4.2 s** — the remaining OS-side time.
+`graphical.target` is now gated by `multi-user.target`'s wants (`wpa_supplicant`
+@3.75 s, `plymouth-quit` now 14 ms), not by anything expensive.
+- One POST-side surface was **not** touched: the PBS "power of <device>" rails for
+devices this machine does not have (`ODD power`, `WWAN`, `EVAL Slot`, `HDD` — all
+1). Speculative gain, and it needs firmware writes plus reboots to test.
 
 ## Tooling gotcha
 
