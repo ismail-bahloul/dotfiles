@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Keep only this platform's APU firmware in the initramfs; drop the rest of the
+# amdgpu set.
+#
+# Why: the `kms` hook adds every firmware file declared by the DRM modules it
+# pulls in. For amdgpu that is 691 files -- every ASIC generation AMD has shipped
+# (polaris, vega, navi, aldebaran, ...). This machine's iGPU is a Renoir/Cezanne
+# APU (detected at boot as RENOIR: gfx_v9_0 / smu_v12_0 / psp_v12_0 / vcn_v2_0 /
+# sdma_v4_0), so none of the other ~670 files can ever be loaded here.
+#
+# They are the bulk of a 56 MiB initramfs that Limine has to read off the vfat
+# ESP at every boot, and that the kernel has to decompress before switch-root --
+# both of which land on `systemd-analyze`'s loader and initrd lines.
+#
+# The whitelist is the APU cluster the driver treats as one family (all GC 9.0 /
+# SMU 12.x): renoir, green_sardine, cezanne, lucienne, barcelo. The driver's own
+# /sys/kernel/debug/dri/*/amdgpu_firmware_info lists the blocks it uses (ME, PFP,
+# CE, MEC, RLC, SDMA, VCN, DMCUB, ASD, TA) and each exists as renoir_*.bin here.
+#
+# Must run after the 'kms' hook.
+
+help() {
+    cat <<HELPEOF
+Drops the non-APU amdgpu firmware from the image, keeping renoir/green_sardine/
+cezanne/lucienne/barcelo. Machine-specific: it assumes the iGPU is a GC 9.0 APU.
+Must run after the 'kms' hook.
+HELPEOF
+}
+
+build() {
+    local d base
+    for d in "$BUILDROOT"/usr/lib/firmware/amdgpu/*; do
+        [ -e "$d" ] || continue
+        base="${d##*/}"
+        case "$base" in
+            renoir_*|green_sardine_*|cezanne_*|lucienne_*|barcelo_*)
+                : ;;                        # this platform's APU firmware - keep
+            *)
+                rm -f "$d" ;;               # every other ASIC - cannot be loaded here
+        esac
+    done
+}

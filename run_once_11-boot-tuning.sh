@@ -23,6 +23,10 @@
 #   6. skip nvidia-persistenced on the VFIO boot entry: there the dGPU is driven
 #      by vfio-pci and settles in D3cold, and every start of that daemon loads
 #      the `nvidia` module, whose probe briefly powers the GPU back up.
+#   7. trim the amdgpu firmware in the initramfs to this APU's files: the `kms`
+#      hook pulls all 691 amdgpu blobs (every ASIC) into a 56 MiB image that
+#      Limine must read off the vfat ESP and the kernel must decompress at every
+#      boot. See myomen15/fan-curve.md.
 # =============================================================================
 set -e
 
@@ -153,7 +157,42 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Regenerate the initramfs (only if something changed)
+# 8. trim the amdgpu firmware in the initramfs to this APU's files
+# ---------------------------------------------------------------------------
+# The `kms` hook adds every firmware file amdgpu declares -- 691 of them, for
+# every ASIC AMD ships. Only the GC 9.0 APU cluster (renoir/green_sardine/...) is
+# loadable on this machine; the rest is most of a 56 MiB initramfs that lands on
+# the loader and initrd boot times. The hook itself does the filtering at build
+# time; here we just install it and its registration.
+TRIM_HOOK_SRC="$SCRIPT_DIR/etc/initcpio/install/amdgpu-trim"
+TRIM_HOOK_DST="/etc/initcpio/install/amdgpu-trim"
+TRIM_CONF_SRC="$SCRIPT_DIR/etc/mkinitcpio.conf.d/40-amdgpu-trim.conf"
+TRIM_CONF_DST="/etc/mkinitcpio.conf.d/40-amdgpu-trim.conf"
+
+if [ ! -f "$TRIM_HOOK_SRC" ]; then
+  log_warn "amdgpu-trim hook not found ($TRIM_HOOK_SRC), skipping"
+else
+  if [ ! -f "$TRIM_HOOK_DST" ] || ! cmp -s "$TRIM_HOOK_SRC" "$TRIM_HOOK_DST"; then
+    sudo mkdir -p "$(dirname "$TRIM_HOOK_DST")"
+    sudo install -m 755 "$TRIM_HOOK_SRC" "$TRIM_HOOK_DST"
+    log_detail "installed $TRIM_HOOK_DST"
+    NEEDS_MKINITCPIO=true
+  else
+    log_skip "amdgpu-trim hook already installed"
+  fi
+
+  if [ -f "$TRIM_CONF_DST" ] && cmp -s "$TRIM_CONF_SRC" "$TRIM_CONF_DST"; then
+    log_skip "amdgpu-trim hook already registered"
+  else
+    sudo mkdir -p "$(dirname "$TRIM_CONF_DST")"
+    sudo install -m 644 "$TRIM_CONF_SRC" "$TRIM_CONF_DST"
+    log_detail "installed $TRIM_CONF_DST"
+    NEEDS_MKINITCPIO=true
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 9. Regenerate the initramfs (only if something changed)
 # ---------------------------------------------------------------------------
 if $NEEDS_MKINITCPIO; then
   log_info "Regenerating initramfs..."
