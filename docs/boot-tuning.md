@@ -92,6 +92,39 @@ What is left, roughly in order of payoff:
 - **firmware (4.7 s) + loader (1.8 s)** are the floor: the HP POST dominates and
   cannot be tuned from the OS; the Limine menu timeout is already 1 s.
 
+## The initramfs was 56 MiB, and most of it was firmware for GPUs this machine does not have
+
+`systemd-analyze` before this change: firmware **4.6 s** + loader **3.6 s** + kernel
+0.9 s + **initrd 7.5 s** + userspace 6.4 s = **22.9 s**. The loader reads 73 MiB
+(17 MiB kernel + 56 MiB initramfs) off the vfat ESP, and the kernel then
+decompresses the initramfs before switch-root -- one cause behind two of the five
+lines.
+
+The `kms` hook adds every firmware file the DRM modules declare. For amdgpu that
+is **691 files** -- every ASIC AMD ships (polaris, vega, navi, aldebaran, gc_11,
+gc_12, ...). This iGPU is a Renoir/Cezanne APU (`gfx_v9_0 / smu_v12_0 / psp_v12_0 /
+vcn_v2_0 / sdma_v4_0`), so ~670 of them can never load. They were ~30 MiB of the
+image.
+
+`etc/initcpio/install/amdgpu-trim` keeps only the GC 9.0 APU cluster
+(`renoir`/`green_sardine`/`cezanne`/`lucienne`/`barcelo`) and drops the rest;
+registered by `etc/mkinitcpio.conf.d/40-amdgpu-trim.conf`, after `no-nouveau`.
+
+| | before | after |
+|---|---|---|
+| initramfs | **56 MiB** | **28 MiB** |
+| amdgpu firmware blobs in the image | 691 | 115 |
+| `renoir_*.bin` (what this APU loads) | 10 | **10** |
+
+The 10 `renoir_*.bin` are exactly the set the *previous* image carried, so nothing
+the working boot needed was dropped (the pre-trim image had no `renoir_mec2` or
+`renoir_gpu_info` either). The 115 that remain are ~3 MiB that mkinitcpio re-adds
+after the hook has run -- the hook cannot see them, and they are not worth
+chasing.
+
+**Rollback:** boot a Limine **Snapshots** entry. Those point at the pre-trim image
+saved under `limine_history/`, not the rebuilt one.
+
 ## Tooling gotcha
 
 `limine-mkinitcpio --help` and `limine-snapper-sync --help` **execute** instead
