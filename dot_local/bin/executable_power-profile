@@ -15,6 +15,27 @@ write_cpu_sysfs() {
   done
 }
 
+# The iGPU/SoC DPM level is an idle-power lever on battery: `low` drops mclk/fclk
+# 1600->400 MHz and an idle session from ~14.5 W to ~11.5 W, with no measured
+# effect on hardware video decode or the 144 Hz panel mode. It does cost CPU
+# memory bandwidth (~-43%), so it is battery-only. See myomen15/efficiency.md.
+# The card number is not stable, so find the amdgpu device that owns pp_dpm_fclk
+# (the dGPU has no such node).
+igpu_dpm_level() {
+  local dev
+  for dev in /sys/class/drm/card*/device; do
+    if [ -e "$dev/pp_dpm_fclk" ]; then echo "$dev/power_dpm_force_performance_level"; return 0; fi
+  done
+  return 1
+}
+set_igpu_dpm() {
+  local lvl="$1" path
+  path=$(igpu_dpm_level)
+  if [ -z "$path" ]; then log "WARN: no amdgpu DPM node found"; return 0; fi
+  [ "$(cat "$path" 2>/dev/null)" = "$lvl" ] && return 0   # already there: no log spam from the guard
+  echo "$lvl" > "$path" 2>/dev/null && log "iGPU DPM level -> $lvl" || log "WARN: $path write failed ($lvl)"
+}
+
 # Log the SMU limits currently in effect. Called once per boot, before the first
 # apply, so the journal records what the firmware seeded at POST. That is how you
 # tell whether a BIOS "System Configuration" change actually took effect: the
@@ -46,7 +67,7 @@ FREQ_BAT=2400000
 
 # ------ Performance (unlocked) ------
 apply_perf() {
-    log "PERF profile: 4.4 GHz / 54W / GPU unlocked"
+    log "PERF profile: 4.47 GHz / 54W / GPU unlocked"
     write_cpu_sysfs scaling_governor performance
     write_cpu_sysfs scaling_max_freq 4465000
     write_cpu_sysfs energy_performance_preference performance
@@ -54,8 +75,10 @@ apply_perf() {
              --apu-slow-limit=42000 --tctl-temp=90 || log "WARN: ryzenadj perf failed"
     nvidia-smi -rmc > /dev/null 2>&1 || true           # memory: release the battery mem lock
     nvidia-smi -lgc 500,2100 > /dev/null 2>&1 || true   # graphics: unlocked ceiling, floor kept (deep P8 sleep = mini-freezes)
-    echo ">>> PERF mode: CPU 4.4 GHz / 54W / GPU unlocked"
-    log "OK: CPU 4.4 GHz / 54W, GPU unlocked"
+    iw dev wlan0 set power_save off 2>/dev/null || true
+    set_igpu_dpm auto   # perf: the memory/fabric clocks stay free
+    echo ">>> PERF mode: CPU 4.47 GHz / 54W / GPU unlocked"
+    log "OK: CPU 4.47 GHz / 54W, GPU unlocked"
 }
 
 apply_ac() {
@@ -68,6 +91,7 @@ apply_ac() {
     nvidia-smi -rmc > /dev/null 2>&1 || true   # release the mem lock battery set (myomen15/dgpu-control.md)
     nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
     iw dev wlan0 set power_save off 2>/dev/null || true
+    set_igpu_dpm auto   # AC: no power to save, keep the memory bandwidth
     echo ">>> AC mode: CPU no freq cap / $((TDP_AC / 1000))W / GPU ${GPU_AC_MIN}–${GPU_AC} MHz (mem: dynamic)"
     log "OK: CPU no freq cap / $((TDP_AC / 1000))W, GPU ${GPU_AC_MIN}-${GPU_AC} MHz (mem: auto)"
 }
@@ -82,6 +106,7 @@ apply_battery() {
     nvidia-smi -lgc 0,${GPU_BAT} > /dev/null 2>&1 || true
     nvidia-smi -lmc 405 > /dev/null 2>&1 || true
     iw dev wlan0 set power_save on 2>/dev/null || true
+    set_igpu_dpm low   # battery: ~-3 W idle; costs CPU memory bandwidth (myomen15/efficiency.md)
     echo ">>> BATTERY mode: CPU $((FREQ_BAT / 1000000)).$(( (FREQ_BAT / 100000) % 10 )) GHz / $((TDP_BAT / 1000))W / GPU ${GPU_BAT} MHz"
     log "OK: CPU $((FREQ_BAT / 1000000)).$(( (FREQ_BAT / 100000) % 10 )) GHz / $((TDP_BAT / 1000))W, GPU ${GPU_BAT} MHz"
 }
@@ -153,6 +178,10 @@ case "${1:-balanced}" in
         fi
         if [ -n "$temp_igpu" ]; then
             printf "│ %-12s │ %-26s │\n" "iGPU temp" "$temp_igpu"
+        fi
+        dpm=$(cat "$(igpu_dpm_level 2>/dev/null)" 2>/dev/null)
+        if [ -n "$dpm" ]; then
+            printf "│ %-12s │ %-26s │\n" "iGPU DPM" "$dpm"
         fi
 
         # NVIDIA (skip if unavailable)
