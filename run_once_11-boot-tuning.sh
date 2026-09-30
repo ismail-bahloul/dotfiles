@@ -20,6 +20,9 @@
 #      kernel updates start failing.
 #   5. mask systemd-binfmt.service: it drags in proc-sys-fs-binfmt_misc.mount at
 #      every boot (~1 s) for nothing; the automount mounts it on first use.
+#   6. skip nvidia-persistenced on the VFIO boot entry: there the dGPU is driven
+#      by vfio-pci and settles in D3cold, and every start of that daemon loads
+#      the `nvidia` module, whose probe briefly powers the GPU back up.
 # =============================================================================
 set -e
 
@@ -129,7 +132,28 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Regenerate the initramfs (only if something changed)
+# 7. skip nvidia-persistenced on the VFIO boot entry
+# ---------------------------------------------------------------------------
+# On the VFIO boot the dGPU is bound to vfio-pci and falls to D3cold (see
+# myomen15/power-config-audit.md). nvidia-persistenced has nothing to do there,
+# but its start still loads the `nvidia` module, whose probe momentarily wakes
+# the GPU; a kernel-command-line condition skips the unit on that entry only.
+PERSIST_SRC="$SCRIPT_DIR/etc/systemd/system/nvidia-persistenced.service.d/10-vfio-skip.conf"
+PERSIST_DST="/etc/systemd/system/nvidia-persistenced.service.d/10-vfio-skip.conf"
+
+if [ ! -f "$PERSIST_SRC" ]; then
+  log_warn "persistenced drop-in not found ($PERSIST_SRC), skipping"
+elif [ -f "$PERSIST_DST" ] && cmp -s "$PERSIST_SRC" "$PERSIST_DST"; then
+  log_skip "nvidia-persistenced VFIO condition already installed"
+else
+  sudo mkdir -p "$(dirname "$PERSIST_DST")"
+  sudo install -m 644 "$PERSIST_SRC" "$PERSIST_DST"
+  sudo systemctl daemon-reload
+  log_detail "installed $PERSIST_DST"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Regenerate the initramfs (only if something changed)
 # ---------------------------------------------------------------------------
 if $NEEDS_MKINITCPIO; then
   log_info "Regenerating initramfs..."
