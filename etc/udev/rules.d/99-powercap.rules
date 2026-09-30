@@ -1,0 +1,5 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+# Make the RAPL energy counters readable without root, so package power can be
+# sampled from an unprivileged shell. Zen exposes them under the intel-rapl*
+# powercap names.
+SUBSYSTEM=="powercap", KERNEL=="intel-rapl*", RUN+="/usr/bin/chmod a+r /sys/%p/energy_uj"

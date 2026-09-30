@@ -11,8 +11,9 @@ validate.sh
 install.sh
 test.sh
 .lib_logging.sh
+.lib_system.sh
 
-# System files installed by run_once_11-boot-tuning.sh (not deployed to ~/)
+# System files installed by run_once_04 and run_once_11 (not deployed to ~/)
 etc
 
 # Investigation notes + evidence, kept for the record (not deployed to ~/)

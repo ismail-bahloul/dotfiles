@@ -1,0 +1,11 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+# Periodic re-apply: workaround for the EC/firmware overriding the limits.
+[Unit]
+Description=Power profile - periodic re-apply (EC override workaround)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

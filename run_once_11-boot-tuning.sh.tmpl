@@ -1,9 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# run_once_11-boot-tuning.sh
+# run_once_11-boot-tuning.sh.tmpl
 # Run once by chezmoi (re-runs if this file changes)
 # Boot-time tuning for the HP OMEN 15-en1xxx (CachyOS + Limine)
 # Idempotent: safe to re-run; mkinitcpio only runs if something actually changed
+# The hash below covers the etc/ files this script installs, so chezmoi re-runs
+# it when one of them changes (a plain run_once_ would not notice).
+# etc-hash: {{ range list "etc/initcpio/install/no-nouveau" "etc/initcpio/install/amdgpu-trim" "etc/mkinitcpio.conf.d/20-no-nouveau.conf" "etc/mkinitcpio.conf.d/30-amdgpu-early.conf" "etc/mkinitcpio.conf.d/40-amdgpu-trim.conf" "etc/systemd/system/nvidia-persistenced.service.d/10-vfio-skip.conf" }}{{ include . | sha256sum | trunc 8 }}{{ end }}
 #
 # Tuning steps, all measured on this machine (see README, "Boot tuning"):
 #   1. drop nouveau + its per-chipset NVIDIA firmware from the initramfs
@@ -26,7 +29,7 @@
 #   7. trim the amdgpu firmware in the initramfs to this APU's files: the `kms`
 #      hook pulls all 691 amdgpu blobs (every ASIC) into a 56 MiB image that
 #      Limine must read off the vfat ESP and the kernel must decompress at every
-#      boot. See myomen15/fan-curve.md.
+#      boot. See docs/boot-tuning.md.
 # =============================================================================
 set -e
 

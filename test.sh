@@ -32,7 +32,7 @@ fi
 # ─── Files ──────────────────────────────────────────────────────────────────
 log_section "Files"
 
-for f in install.sh validate.sh run_once_*.sh dot_local/bin/*; do
+for f in install.sh validate.sh run_once_*.sh* dot_local/bin/*; do
   if [ -f "$f" ]; then
     log_pass "$f"
   else
@@ -50,8 +50,13 @@ done
 # ─── Shell syntax ───────────────────────────────────────────────────────────
 log_section "Shell syntax"
 
-for f in install.sh validate.sh run_once_*.sh; do
-  if bash -n "$f"; then
+for f in install.sh validate.sh run_once_*.sh*; do
+  # .tmpl scripts carry a chezmoi hash line: render them before the syntax check
+  case "$f" in
+    *.tmpl) check() { chezmoi -S "$PWD" execute-template < "$f" | bash -n; } ;;
+    *)      check() { bash -n "$f"; } ;;
+  esac
+  if check; then
     log_pass "$f"
   else
     log_fail "$f syntax error"

@@ -37,17 +37,17 @@ dotfiles/
 ├── run_once_01-packages.sh           # pacman + AUR packages
 ├── run_once_02-wine-staging.sh       # wine-staging 9.21 standalone runner
 ├── run_once_03-nbfc.sh               # nbfc-linux + nbfc-qt (forks)
-├── run_once_04-power-profile.sh      # RyzenAdj + NVIDIA power profiles + EC re-apply timer
+├── run_once_04-power-profile.sh.tmpl  # RyzenAdj + NVIDIA power profiles + EC re-apply timer
 ├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
 ├── run_once_06-libvirt-setup.sh      # libvirt services + groups
 ├── run_once_07-looking-glass.sh      # Looking Glass shared memory
 ├── run_once_08-kde-settings.sh       # KDE settings enforced via kwriteconfig6
 ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
 ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
-├── run_once_11-boot-tuning.sh        # initramfs slimming + Limine snapshot cap
+├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
 ├── packages.pacman                   # official repo packages
 ├── packages.aur                      # AUR packages
-├── etc/                              # system files installed by run_once_11
+├── etc/                              # system files (units, udev, initcpio) installed by run_once_04/11
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # why the config here is the way it is
@@ -56,7 +56,7 @@ dotfiles/
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
 │   └── notes.md                              # versioned-vs-not, audio, SSH keys
 ├── my-nbfc.json                       # custom fan profile (NBFC)
-├── create_dot_config/                 # created only if absent (Plasma owns it afterwards)
+├── dot_config/create_*                # created only if absent (Plasma/Kate own them afterwards)
 │   └── plasma-*.appletsrc             # panel/widgets layout (volatile → apply once)
 ├── dot_config/
 │   ├── gh/                           # GitHub CLI config

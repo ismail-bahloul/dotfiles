@@ -1,0 +1,20 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+#
+# ExecStart uses `guard`, not `auto`: `guard` behaves like `auto` except that it
+# refuses to re-apply while the `performance` governor is active, so a manually
+# selected PERF mode is never clobbered by the periodic timer.
+#
+# No RemainAfterExit: the timer uses OnUnitActiveSec, which is relative to the
+# last *activation*. With RemainAfterExit=yes the unit stays active forever,
+# never re-activates, and the timer's next elapse resolves to "infinity" after a
+# single run (the periodic re-apply silently dies).
+[Unit]
+Description=Power profile - AC/battery CPU/GPU power & temp limits
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/power-profile guard
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

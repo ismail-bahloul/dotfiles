@@ -1,0 +1,4 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+# RME Babyface Pro FS (USB 2a39:3fc0): give the audio group access to the device.
+# See dot_config/wireplumber/wireplumber.conf.d/51-rme.conf.
+SUBSYSTEM=="usb", ATTR{idVendor}=="2a39", ATTR{idProduct}=="3fc0", MODE="0664", GROUP="audio"

@@ -91,14 +91,19 @@ for svc in virtqemud.socket virtnetworkd.socket; do
   fi
 done
 
-# ─── Udev ───────────────────────────────────────────────────────────────────
-log_section "Udev"
+# ─── System files (etc/) ────────────────────────────────────────────────────
+# Every file versioned under etc/ must be installed at the same path, unchanged.
+log_section "System files"
 
-if [ -f /etc/udev/rules.d/99-power-profile.rules ]; then
-  log_pass "Power-profile udev rule"
-else
-  log_fail "Power-profile udev rule missing"
-fi
+while IFS= read -r rel; do
+  if [ ! -f "/$rel" ]; then
+    log_fail "/$rel missing (run_once script not applied?)"
+  elif cmp -s "$SCRIPT_DIR/$rel" "/$rel"; then
+    log_pass "/$rel"
+  else
+    log_fail "/$rel differs from the repo copy"
+  fi
+done < <(cd "$SCRIPT_DIR" && find etc -type f | sort)
 
 # ─── VFIO ───────────────────────────────────────────────────────────────────
 log_section "VFIO"
@@ -124,6 +129,12 @@ if command -v power-profile &>/dev/null; then
     log_pass "CPU governor: $GOV"
   else
     log_fail "CPU governor unknown"
+  fi
+  DRV=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver 2>/dev/null)
+  if [ "$DRV" = "amd-pstate-epp" ]; then
+    log_pass "cpufreq driver: $DRV"
+  else
+    log_warn "cpufreq driver: ${DRV:-unknown} (expected amd-pstate-epp; the EPP writes in power-profile need it)"
   fi
 else
   log_fail "Power-profile not installed"
@@ -167,15 +178,12 @@ fi
 # ─── Sysctl ─────────────────────────────────────────────────────────────────
 log_section "Sysctl"
 
+# Nothing here sets swappiness: sysctl.d says 100, bpftune raises it at runtime
+# when zram is present. Report the live value rather than assert one.
 if lsblk | grep -q zram; then
-  log_pass "Zram active (swappiness handled by kernel)"
+  log_pass "Zram active, swappiness=$(cat /proc/sys/vm/swappiness 2>/dev/null) (bpftune-managed)"
 else
-  SWAP=$(cat /proc/sys/vm/swappiness 2>/dev/null)
-  if [ "$SWAP" = "10" ]; then
-    log_pass "Swappiness=10"
-  else
-    log_fail "Swappiness=$SWAP (expected 10)"
-  fi
+  log_warn "No zram swap active"
 fi
 
 # ─── Looking Glass ──────────────────────────────────────────────────────────

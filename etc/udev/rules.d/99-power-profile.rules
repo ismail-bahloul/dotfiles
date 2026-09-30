@@ -1,0 +1,8 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+# Re-apply the power profile on AC plug/unplug.
+# Uses `guard`, not `auto`: `auto` always re-applies and would silently drop a
+# manually selected PERF mode (4.4 GHz, GPU unlocked) on every AC transition.
+# `guard` refuses to re-apply while the `performance` governor is active, same as
+# power-profile.service.
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="ACAD", ATTR{online}=="1", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/power-profile guard"
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="ACAD", ATTR{online}=="0", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/power-profile guard"

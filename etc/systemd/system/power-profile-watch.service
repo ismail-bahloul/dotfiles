@@ -1,0 +1,22 @@
+# Installed by run_once_04-power-profile.sh (dotfiles).
+#
+# The timer polls every 5 min, but writing platform_profile makes the EC
+# re-apply its own limits within a second, so the machine could sit clobbered
+# for almost the whole interval. inotify does work on that sysfs attribute, so
+# this reacts to the write instead of polling.
+#
+# It delegates to `systemctl start power-profile.service`, so the profile keeps a
+# single implementation and cannot drift. The timer stays as a backstop for
+# changes that do NOT touch platform_profile.
+[Unit]
+Description=Power profile - re-apply the instant platform_profile is written
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/power-profile-watch
+Restart=always
+RestartSec=2
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

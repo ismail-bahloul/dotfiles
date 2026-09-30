@@ -1,0 +1,87 @@
+#!/bin/bash
+# =============================================================================
+# run_once_04-power-profile.sh.tmpl
+# Run once by chezmoi (re-runs if this file changes)
+# Install power-profile service + udev rules (RyzenAdj + NVIDIA + CPU governor)
+# The unit and rule files are versioned under etc/; their hash below makes
+# chezmoi re-run this script whenever one of them changes.
+# etc-hash: {{ range list "etc/systemd/system/power-profile.service" "etc/systemd/system/power-profile.timer" "etc/systemd/system/power-profile-watch.service" "etc/udev/rules.d/99-power-profile.rules" "etc/udev/rules.d/99-powercap.rules" "etc/udev/rules.d/99-rme-babyface.rules" }}{{ include . | sha256sum | trunc 8 }}{{ end }}
+# =============================================================================
+set -e
+
+# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
+# present when run_once scripts run under chezmoi, so no fallback is needed.
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+
+SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
+source "$SCRIPT_DIR/.lib_system.sh"
+
+log_info "Installing power-profile..."
+
+# Disable power-profiles-daemon if present (conflicts with our setup)
+if [ -f /usr/lib/systemd/system/power-profiles-daemon.service ]; then
+  log_info "power-profiles-daemon detected, masking it..."
+  sudo systemctl mask --now power-profiles-daemon.service 2>/dev/null || true
+fi
+
+# Single source of truth for power-profile: ~/.local/bin/power-profile
+# (chezmoi-managed) is canonical. /usr/local/bin is a symlink to it, so the
+# systemd service and `sudo` (which use secure_path incl. /usr/local/bin)
+# always resolve to the same file as an interactive `power-profile`.
+PROFILE_TARGET="$HOME/.local/bin/power-profile"
+mkdir -p "$HOME/.local/bin"
+if [ ! -f "$PROFILE_TARGET" ]; then
+  # Bootstrap fallback if chezmoi hasn't deployed the file yet.
+  cp "$SCRIPT_DIR/dot_local/bin/executable_power-profile" "$PROFILE_TARGET"
+fi
+chmod +x "$PROFILE_TARGET"
+sudo ln -sf "$PROFILE_TARGET" /usr/local/bin/power-profile
+
+# Remove old service/udev if they exist (from ryzenadj-profile rename)
+sudo rm -f /etc/systemd/system/ryzenadj-profile.service /etc/systemd/system/ryzenadj.service /etc/systemd/system/ryzenadj.timer /etc/udev/rules.d/99-ryzenadj-profile.rules
+sudo systemctl daemon-reload 2>/dev/null
+
+WATCH_TARGET="$HOME/.local/bin/power-profile-watch"
+if [ ! -f "$WATCH_TARGET" ]; then
+  cp "$SCRIPT_DIR/dot_local/bin/executable_power-profile-watch" "$WATCH_TARGET"
+fi
+chmod +x "$WATCH_TARGET"
+sudo ln -sf "$WATCH_TARGET" /usr/local/bin/power-profile-watch
+
+# Units and udev rules live under etc/ in the source dir (rationale is in the
+# files themselves). They are only rewritten when they differ from what is
+# installed; the hash line at the top of this file re-runs the script when any
+# of them changes.
+for f in \
+  etc/systemd/system/power-profile.service \
+  etc/systemd/system/power-profile.timer \
+  etc/systemd/system/power-profile-watch.service; do
+  install_system_file "$f" || true
+done
+for f in \
+  etc/udev/rules.d/99-power-profile.rules \
+  etc/udev/rules.d/99-powercap.rules \
+  etc/udev/rules.d/99-rme-babyface.rules; do
+  install_system_file "$f" || true
+done
+
+# swappiness is deliberately not set here. sysctl.d (70-cachyos-settings.conf)
+# says 100 but the live value is 150: bpftune raises it at runtime when zram is
+# present. Setting our own value would only fight the tuner.
+
+# Enable and (re)start. `enable --now` alone is not enough on a re-run: it does
+# not restart an already-active timer, so a changed schedule would never be
+# picked up. Restart both unconditionally.
+sudo systemctl daemon-reload
+sudo systemctl enable power-profile.service power-profile.timer power-profile-watch.service
+sudo systemctl restart power-profile.service
+sudo systemctl restart power-profile.timer
+sudo systemctl restart power-profile-watch.service
+
+# Enable NVIDIA services (suspend/resume only)
+sudo systemctl enable nvidia-suspend.service nvidia-resume.service 2>/dev/null || true
+
+# Reload udev rules
+sudo udevadm control --reload-rules
+
+log_pass "Power profile setup complete."
