@@ -1,7 +1,7 @@
 {
   "NotebookModel": "my-nbfc",
   "Author": "Isma",
-  "Comment": "PATH: /usr/share/nbfc/configs/. MinSpeed 12% at first step prevents the yoyo effect (fan oscillating 0<->12% around 48-50C). DownThreshold=0 on step 0 ensures the fan never fully stops once spun up. The four lowest steps' *speeds* were lowered (12/16/20/24 -> 12/12/15/18) rather than their thresholds: raising a threshold was measured to buy nothing (the loop re-equilibrates at the same duty, just hotter), while lowering the duty is what actually changes the rpm. The steps from 74C up are untouched, so the heavy-load envelope is unchanged. On battery the SMU caps Tctl at 65C regardless, so the extra few degrees are bounded by the firmware, not by this curve.",
+  "Comment": "PATH: /usr/share/nbfc/configs/. MinSpeed 12% at first step prevents the yoyo effect (fan oscillating 0↔12% around 48-50°C). DownThreshold=0 on step 0 ensures the fan never fully stops once spun up.",
   "EcPollInterval": 1000,
   "ReadWriteWords": false,
   "CriticalTemperature": 100,
@@ -26,17 +26,17 @@
         {
           "UpThreshold": 60,
           "DownThreshold": 49,
-          "FanSpeed": 12
+          "FanSpeed": 16
         },
         {
           "UpThreshold": 65,
           "DownThreshold": 58,
-          "FanSpeed": 15
+          "FanSpeed": 20
         },
         {
           "UpThreshold": 69,
           "DownThreshold": 63,
-          "FanSpeed": 18
+          "FanSpeed": 24
         },
         {
           "UpThreshold": 74,
@@ -96,17 +96,17 @@
         {
           "UpThreshold": 60,
           "DownThreshold": 49,
-          "FanSpeed": 12
+          "FanSpeed": 16
         },
         {
           "UpThreshold": 65,
           "DownThreshold": 58,
-          "FanSpeed": 15
+          "FanSpeed": 22
         },
         {
           "UpThreshold": 69,
           "DownThreshold": 63,
-          "FanSpeed": 18
+          "FanSpeed": 26
         },
         {
           "UpThreshold": 74,
