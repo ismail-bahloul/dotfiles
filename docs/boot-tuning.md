@@ -127,21 +127,24 @@ saved under `limine_history/`, not the rebuilt one.
 
 ### Result (measured, boot by boot)
 
-| | origin | after the firmware trim | after dropping Plymouth |
-|---|---|---|---|
-| firmware | 4.625 s | 4.617 s | 4.645 s |
-| loader | 3.559 s | **1.496 s** | 1.485 s |
-| kernel | 0.873 s | 0.876 s | 0.886 s |
-| initrd | 7.491 s | **5.368 s** | **5.036 s** |
-| userspace | 6.361 s | **4.287 s** | **4.181 s** |
-| **total** | **22.910 s** | 16.645 s | **16.235 s** |
+| | origin | deployed |
+|---|---|---|
+| firmware | 4.625 s | 4.617 s |
+| loader | 3.559 s | **1.496 s** |
+| kernel | 0.873 s | 0.876 s |
+| initrd | 7.491 s | **5.368 s** |
+| userspace | 6.361 s | **4.287 s** |
+| **total** | **22.910 s** | **16.645 s** |
 
-**22.9 → 16.2 s, −29 %.** The firmware trim is the whole story: it took the
-initramfs from 56 to 28 MiB and the loader and initrd fell with it. Dropping
-Plymouth is worth only **−0.41 s**, not the 1.15 s its units account for on their
-own — they overlapped with other work, so most of that time was never on the
-critical path. `plymouth-start` is now skipped outright
-(`ConditionResult=no`).
+**22.9 → 16.6 s, −27 %**, and the firmware trim is the whole story: it took the
+initramfs from 56 to 28 MiB and the loader and initrd fell with it.
+
+**Plymouth was then removed, measured, and put back.** It is worth only
+**−0.41 s** — not the 1.15 s its units account for on their own (they overlap
+with other work, so most of that time was never on the critical path) — and the
+price is the boot splash. The splash was judged worth more than 0.41 s, so the
+hooks and the `splash` cmdline are restored and the deployed boot is the 16.6 s
+row above.
 
 The 6 `Mode Validation Warning` lines on the eDP are present **identically** on
 the boot *before* the firmware trim, so nothing here introduced them.

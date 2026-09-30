@@ -26,9 +26,7 @@
 #   7. trim the amdgpu firmware in the initramfs to this APU's files: the `kms`
 #      hook pulls all 691 amdgpu blobs (every ASIC) into a 56 MiB image that
 #      Limine must read off the vfat ESP and the kernel must decompress at every
-#   8. drop Plymouth: the splash is not wanted, the hook costs ~665 ms inside
-#      the initrd (plymouth-switch-root) and `plymouth.enable=0` skips the
-#      userspace units. `quiet` already keeps the kernel messages off.
+#      boot. See myomen15/fan-curve.md.
 # =============================================================================
 set -e
 
@@ -194,39 +192,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 9. drop Plymouth (splash off, hook out of the initramfs)
-# ---------------------------------------------------------------------------
-# The boot splash is not wanted. Two halves: `plymouth.enable=0` on the kernel
-# cmdline (in /etc/default/limine, which limine-entry-tool regenerates the
-# entries from) skips the userspace units, and dropping the hook removes the
-# ~665 ms plymouth-switch-root from the initrd plus its binaries from the image.
-LIMINE_DEFAULT_SRC="$SCRIPT_DIR/etc/default/limine"
-LIMINE_DEFAULT_DST="/etc/default/limine"
-PLY_CONF_SRC="$SCRIPT_DIR/etc/mkinitcpio.conf.d/91-no-plymouth.conf"
-PLY_CONF_DST="/etc/mkinitcpio.conf.d/91-no-plymouth.conf"
-
-if [ ! -f "$LIMINE_DEFAULT_SRC" ]; then
-  log_warn "limine defaults not found ($LIMINE_DEFAULT_SRC), skipping"
-elif [ -f "$LIMINE_DEFAULT_DST" ] && cmp -s "$LIMINE_DEFAULT_SRC" "$LIMINE_DEFAULT_DST"; then
-  log_skip "limine cmdline already updated"
-else
-  sudo install -m 644 "$LIMINE_DEFAULT_SRC" "$LIMINE_DEFAULT_DST"
-  log_detail "installed $LIMINE_DEFAULT_DST"
-  NEEDS_MKINITCPIO=true
-fi
-
-if [ ! -f "$PLY_CONF_SRC" ]; then
-  log_warn "no-plymouth drop-in not found ($PLY_CONF_SRC), skipping"
-elif [ -f "$PLY_CONF_DST" ] && cmp -s "$PLY_CONF_SRC" "$PLY_CONF_DST"; then
-  log_skip "plymouth already dropped from the initramfs"
-else
-  sudo install -m 644 "$PLY_CONF_SRC" "$PLY_CONF_DST"
-  log_detail "installed $PLY_CONF_DST"
-  NEEDS_MKINITCPIO=true
-fi
-
-# ---------------------------------------------------------------------------
-# 10. Regenerate the initramfs (only if something changed)
+# 9. Regenerate the initramfs (only if something changed)
 # ---------------------------------------------------------------------------
 if $NEEDS_MKINITCPIO; then
   log_info "Regenerating initramfs..."

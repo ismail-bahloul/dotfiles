@@ -28,7 +28,7 @@ replacement = r'\1' + f"""  //linux-cachyos-vfio
   protocol: linux
   module_path: boot():/{mid.group(1)}/linux-cachyos/initramfs-linux-cachyos
   path: boot():/{mid.group(1)}/linux-cachyos/vmlinuz-linux-cachyos
-  cmdline: quiet nowatchdog plymouth.enable=0 rw rootflags=subvol=/@ root=UUID={root_uuid.group(1)} iommu=pt vfio-pci.ids=10de:249d,10de:228b
+  cmdline: quiet nowatchdog splash rw rootflags=subvol=/@ root=UUID={root_uuid.group(1)} iommu=pt vfio-pci.ids=10de:249d,10de:228b
 
 """
 
