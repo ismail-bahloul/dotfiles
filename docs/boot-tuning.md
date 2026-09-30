@@ -125,6 +125,31 @@ chasing.
 **Rollback:** boot a Limine **Snapshots** entry. Those point at the pre-trim image
 saved under `limine_history/`, not the rebuilt one.
 
+### Result (measured, next boot)
+
+| | before | after |
+|---|---|---|
+| firmware | 4.625 s | 4.617 s |
+| loader | 3.559 s | **1.496 s** |
+| kernel | 0.873 s | 0.876 s |
+| initrd | 7.491 s | **5.368 s** |
+| userspace | 6.361 s | **4.287 s** |
+| **total** | **22.910 s** | **16.645 s** |
+
+**−6.3 s, −27 %.** The loader and initrd fell as expected; the userspace line fell
+with them (less work contending in parallel). The 6 `Mode Validation Warning`
+lines on the eDP are present **identically** on the boot *before* the change, so
+the trim introduced nothing.
+
+### What is left on the critical chain
+
+`graphical.target` is now gated by `logid.service` (a Logitech daemon, at 4.29 s),
+with `plymouth-quit.service` (4.11 s) and `run-bpftune-cgroupv2.mount` (4.11 s)
+just behind it. The `serial8250` `ttyS0..3` still settle at ~6.1 s, but async —
+they do not gate the desktop. Dropping Plymouth (`splash` + the hook) and moving
+`logid` off the chain is the remaining ~1 s; the firmware (4.6 s) is the HP POST
+and is the floor.
+
 ## Tooling gotcha
 
 `limine-mkinitcpio --help` and `limine-snapper-sync --help` **execute** instead
