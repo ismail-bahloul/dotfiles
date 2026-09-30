@@ -36,6 +36,15 @@ set_igpu_dpm() {
   echo "$lvl" > "$path" 2>/dev/null && log "iGPU DPM level -> $lvl" || log "WARN: $path write failed ($lvl)"
 }
 
+# The RTX 3070 is bound to vfio-pci on the default Limine entry (and parked in
+# D3cold). When the nvidia driver does not own it, every `nvidia-smi` call costs
+# ~0.8 s and fails -- two of them in a profile apply is ~1.6 s added to the boot
+# critical path for nothing. The PCI binding symlink answers instantly, so gate
+# on it. (Same test `info` already uses for its dGPU row.)
+nvidia_ready() {
+  [ "$(readlink "/sys/bus/pci/devices/0000:01:00.0/driver" 2>/dev/null | xargs basename 2>/dev/null)" = "nvidia" ]
+}
+
 # Log the SMU limits currently in effect. Called once per boot, before the first
 # apply, so the journal records what the firmware seeded at POST. That is how you
 # tell whether a BIOS "System Configuration" change actually took effect: the
@@ -73,8 +82,10 @@ apply_perf() {
     write_cpu_sysfs energy_performance_preference performance
     /usr/bin/ryzenadj --stapm-limit=54000 --fast-limit=65000 --slow-limit=54000 \
              --apu-slow-limit=42000 --tctl-temp=90 || log "WARN: ryzenadj perf failed"
-    nvidia-smi -rmc > /dev/null 2>&1 || true           # memory: release the battery mem lock
-    nvidia-smi -lgc 500,2100 > /dev/null 2>&1 || true   # graphics: unlocked ceiling, floor kept (deep P8 sleep = mini-freezes)
+    if nvidia_ready; then
+        nvidia-smi -rmc > /dev/null 2>&1 || true           # memory: release the battery mem lock
+        nvidia-smi -lgc 500,2100 > /dev/null 2>&1 || true   # graphics: unlocked ceiling, floor kept (deep P8 sleep = mini-freezes)
+    fi
     iw dev wlan0 set power_save off 2>/dev/null || true
     set_igpu_dpm auto   # perf: the memory/fabric clocks stay free
     echo ">>> PERF mode: CPU 4.47 GHz / 54W / GPU unlocked"
@@ -88,8 +99,10 @@ apply_ac() {
     write_cpu_sysfs energy_performance_preference balance_power
     /usr/bin/ryzenadj --stapm-limit=${TDP_AC} --fast-limit=${FAST_AC} --slow-limit=${TDP_AC} \
              --apu-slow-limit=22000 --tctl-temp=${TEMP_AC} 2>&1 || log "WARN: ryzenadj AC failed"
-    nvidia-smi -rmc > /dev/null 2>&1 || true   # release the mem lock battery set (myomen15/dgpu-control.md)
-    nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
+    if nvidia_ready; then
+        nvidia-smi -rmc > /dev/null 2>&1 || true   # release the mem lock battery set (myomen15/dgpu-control.md)
+        nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
+    fi
     iw dev wlan0 set power_save off 2>/dev/null || true
     set_igpu_dpm auto   # AC: no power to save, keep the memory bandwidth
     echo ">>> AC mode: CPU no freq cap / $((TDP_AC / 1000))W / GPU ${GPU_AC_MIN}–${GPU_AC} MHz (mem: dynamic)"
@@ -103,8 +116,10 @@ apply_battery() {
     write_cpu_sysfs energy_performance_preference power
     /usr/bin/ryzenadj --stapm-limit=${TDP_BAT} --fast-limit=${FAST_BAT} --slow-limit=${TDP_BAT} \
              --apu-slow-limit=15000 --tctl-temp=${TEMP_BAT} --power-saving 2>&1 || log "WARN: ryzenadj battery failed"
-    nvidia-smi -lgc 0,${GPU_BAT} > /dev/null 2>&1 || true
-    nvidia-smi -lmc 405 > /dev/null 2>&1 || true
+    if nvidia_ready; then
+        nvidia-smi -lgc 0,${GPU_BAT} > /dev/null 2>&1 || true
+        nvidia-smi -lmc 405 > /dev/null 2>&1 || true
+    fi
     iw dev wlan0 set power_save on 2>/dev/null || true
     set_igpu_dpm low   # battery: ~-3 W idle; costs CPU memory bandwidth (myomen15/efficiency.md)
     echo ">>> BATTERY mode: CPU $((FREQ_BAT / 1000000)).$(( (FREQ_BAT / 100000) % 10 )) GHz / $((TDP_BAT / 1000))W / GPU ${GPU_BAT} MHz"
