@@ -86,6 +86,26 @@ dotfiles/
 │   └── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)
 ```
 
+## System files (`etc/`)
+
+Files that live outside `~` (mkinitcpio hooks, systemd units, udev rules) are
+versioned under `etc/` with the **same path they have on the machine**, so the
+repo tree mirrors `/etc`. They are not deployed by chezmoi itself (`etc` is in
+`.chezmoiignore`); a `run_once_` script installs them:
+
+- `run_once_04-power-profile.sh.tmpl` — the power-profile units and udev rules
+- `run_once_11-boot-tuning.sh.tmpl` — the initramfs hooks and the VFIO drop-in
+
+Both use `install_system_file` (`.lib_system.sh`), which copies a file only if it
+differs from the installed one. Both are **templates** whose header carries an
+`etc-hash:` line: a hash of the `etc/` files the script installs. chezmoi
+re-runs a `run_once_` script only when its own content changes, so without that
+line editing a unit would never be redeployed. **When you add a file under
+`etc/`, add its path to the `etc-hash` list of the script that installs it.**
+
+`validate.sh` compares every file under `etc/` with its installed copy, so a
+missing hash entry or a hand-edited `/etc` file shows up as a failure.
+
 ## Hardware
 
 | Component | Model |
