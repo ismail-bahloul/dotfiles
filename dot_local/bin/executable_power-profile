@@ -36,6 +36,19 @@ set_igpu_dpm() {
   echo "$lvl" > "$path" 2>/dev/null && log "iGPU DPM level -> $lvl" || log "WARN: $path write failed ($lvl)"
 }
 
+# CPB / boost is a *global* knob (`/sys/.../cpufreq/boost`), unlike the per-policy
+# files above, and amd-pstate exposes it. It only matters where scaling_max_freq
+# is above the base clock: on battery the cap is 2.4 GHz (below the 3.2 GHz base),
+# so boost cannot apply there at all. Its real use is the `quiet` mode -- full
+# all-core frequency, no single-thread boost. Measured: boost=0 costs ~-21%
+# single-thread (myomen15/efficiency.md, and the same effect as the CBS bit).
+set_boost() {
+  local on="$1"
+  [ -e /sys/devices/system/cpu/cpufreq/boost ] || return 0
+  [ "$(cat /sys/devices/system/cpu/cpufreq/boost 2>/dev/null)" = "$on" ] && return 0
+  echo "$on" > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null && log "boost -> $on" || log "WARN: boost write failed ($on)"
+}
+
 # The RTX 3070 is bound to vfio-pci on the default Limine entry (and parked in
 # D3cold). When the nvidia driver does not own it, every `nvidia-smi` call costs
 # ~0.8 s and fails -- two of them in a profile apply is ~1.6 s added to the boot
@@ -87,6 +100,7 @@ apply_perf() {
         nvidia-smi -lgc 500,2100 > /dev/null 2>&1 || true   # graphics: unlocked ceiling, floor kept (deep P8 sleep = mini-freezes)
     fi
     iw dev wlan0 set power_save off 2>/dev/null || true
+    set_boost 1         # perf: boost on
     set_igpu_dpm auto   # perf: the memory/fabric clocks stay free
     echo ">>> PERF mode: CPU 4.47 GHz / 54W / GPU unlocked"
     log "OK: CPU 4.47 GHz / 54W, GPU unlocked"
@@ -104,6 +118,7 @@ apply_ac() {
         nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
     fi
     iw dev wlan0 set power_save off 2>/dev/null || true
+    set_boost 1         # AC: light work keeps its boost (no artificial cap here)
     set_igpu_dpm auto   # AC: no power to save, keep the memory bandwidth
     echo ">>> AC mode: CPU no freq cap / $((TDP_AC / 1000))W / GPU ${GPU_AC_MIN}–${GPU_AC} MHz (mem: dynamic)"
     log "OK: CPU no freq cap / $((TDP_AC / 1000))W, GPU ${GPU_AC_MIN}-${GPU_AC} MHz (mem: auto)"
@@ -126,6 +141,28 @@ apply_battery() {
     log "OK: CPU $((FREQ_BAT / 1000000)).$(( (FREQ_BAT / 100000) % 10 )) GHz / $((TDP_BAT / 1000))W, GPU ${GPU_BAT} MHz"
 }
 
+# ------ Quiet (cool/silent: full all-core frequency, no single-thread boost) ------
+# The AC profile deliberately keeps boost so light work stays snappy; this is the
+# opposite trade -- boost off drops single-thread ~21% and its heat, while leaving
+# the all-core frequency free (the power cap, not a frequency cap, does the cooling).
+apply_quiet() {
+    log "Quiet profile: boost off / no freq cap / $((TDP_AC / 1000))W"
+    write_cpu_sysfs scaling_governor powersave
+    write_cpu_sysfs scaling_max_freq "${FREQ_AC}"
+    write_cpu_sysfs energy_performance_preference balance_power
+    set_boost 0
+    /usr/bin/ryzenadj --stapm-limit=${TDP_AC} --fast-limit=${FAST_AC} --slow-limit=${TDP_AC} \
+             --apu-slow-limit=22000 --tctl-temp=${TEMP_AC} 2>&1 || log "WARN: ryzenadj quiet failed"
+    if nvidia_ready; then
+        nvidia-smi -rmc > /dev/null 2>&1 || true
+        nvidia-smi -lgc ${GPU_AC_MIN},${GPU_AC} > /dev/null 2>&1 || true
+    fi
+    iw dev wlan0 set power_save off 2>/dev/null || true
+    set_igpu_dpm auto
+    echo ">>> QUIET mode: boost off / no freq cap / $((TDP_AC / 1000))W"
+    log "OK: quiet (boost off, no freq cap, $((TDP_AC / 1000))W)"
+}
+
 # ------ Main ------
 case "${1:-balanced}" in
     perf|performance)
@@ -134,6 +171,8 @@ case "${1:-balanced}" in
         apply_ac  ;;
     battery|onbattery)
         apply_battery  ;;
+    quiet|silent)
+        apply_quiet  ;;
     auto|balanced|guard)
         # Record the firmware-seeded limits once per boot (see log_current_limits).
         if [ ! -e /run/power-profile.boot-seen ]; then
@@ -233,7 +272,7 @@ case "${1:-balanced}" in
         echo "└────────────────────────────────────────────┘"
         ;;
     *)
-        echo "Usage: $0 {balanced|perf|ac|battery|guard|info}"
+        echo "Usage: $0 {balanced|perf|ac|battery|quiet|guard|info}"
         exit 1
         ;;
 esac
