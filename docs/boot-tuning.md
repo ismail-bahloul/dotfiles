@@ -116,10 +116,26 @@ between 9.1 and 9.8 s.
   vfio entry (~20 entries in `limine.conf`), and the menu timeout is 1 s.
   Lowering `MAX_SNAPSHOT_ENTRIES` (or dropping the vfio twin for snapshots)
   trims the menu without losing the rollback entries.
-- **Cold boot is where the firmware time really is**: 9.15 s (cold, 2026-10-12)
-  against 4.69 s (warm) — that difference is memory training. A CBS
-  *Memory Context Restore*-class setting (Smokeless UMAF) is the only remaining
-  firmware-side lever, and it only pays on cold boots.
+- **Cold boot is not the cost, and Memory Context Restore is not a lever here.**
+  (Corrected the same day: this page first read the 9 s boots as cold boots and
+  blamed memory training. `journalctl` keeps the *Startup finished in …* line
+  per boot; read across the last boots it shows 15.6 s on the boot right after
+  the CH341 restore + CMOS reset (12/10 09:54), 9.25 s and 9.15 s on the two
+  boots that followed the flash writes (12/10 10:17 and 10:41), then 4.58 /
+  4.54 / 4.69 s on the next three -- **including the first boot of 13/10 after
+  the night** (08:39, 4.54 s). The slow boots were *post-event* boots, not cold
+  boots: a routine cold boot already runs at ~4.5 s, so there is no training
+  time to reclaim. Independently, the option does not exist: no `Memory Context
+  Restore` anywhere in this firmware's IFR (HP Setup, AMD CBS/PBS/AOD), the AMD
+  CBS family is inert on this machine (memory is programmed from the signed
+  `APCB`; measured in myomen15
+  `evidence/ifr-static/bridge/experiment-cbs-memory/`), and the module that
+  would implement it (`AmdMemRestorePei`) sits in the `61C0F511` boot-block
+  volumes -- the region whose modification bricked the machine on 2026-10-11.
+- **A boot that follows a flash write is ~4.5 s slower in firmware** (2 out of
+  2 so far). Worth remembering before reading anything into a slow boot after
+  flashing -- and possibly a hint that the platform runs an extra pass once the
+  flash content changes.
 - Hygiene: `/etc/limine-snapper-sync.conf.pacnew` (2026-10-10) is waiting for a
   `pacdiff`; the live config predates it (it carries the `MAX_SNAPSHOT_ENTRIES=8`
   the boot-tuning run_once added).
