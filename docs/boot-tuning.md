@@ -92,6 +92,38 @@ What is left, roughly in order of payoff:
 - **firmware (4.7 s) + loader (1.8 s)** are the floor: the HP POST dominates and
   cannot be tuned from the OS; the Limine menu timeout is already 1 s.
 
+## 2026-10-13: the mount block is contention, and two ideas are now ruled out
+
+Boot of the day: firmware 4.69 + loader 1.56 + kernel 0.89 + initrd 5.20 +
+userspace 5.73 = **18.07 s**. The userspace block reaching `local-fs.target`
+(~3.7 s) is the fstab mounts: `/home` mounts in **8 ms**, then
+`/home/iswad/DATA` takes 1.0 s, `/boot` 1.65 s, SHARED 0.68 s, all ending
+between 9.1 and 9.8 s.
+
+- **`/boot`'s 1.65 s is not the mount.** The same vfat mount done on a quiet
+  system takes **26 ms**; at boot the window is shared with udev coldplug,
+  `ldconfig`, `tmpfiles` and the tail of the GPU bring-up, all on the same
+  NVMe. So `x-systemd.automount` on `/boot` would only move the wait, not
+  remove it — dropped as an idea.
+- **`snapper-boot.service` is not competing either**: it finishes at 10.9 s,
+  *after* the mounts. Reordering it would change nothing — dropped.
+- **`run-bpftune-cgroupv2.mount` identified**: `bpftune-git` (CachyOS)
+  transient cgroup2 mount for its BPF programs. Off today's blame list
+  (jitter, not a standing cost). Nothing to do.
+- **serial8250 `ttyS0..3`**: settle at 5-7 s but *async* and never on the
+  critical chain. Leaving them alone (the machine really does expose 4 UARTs).
+- **Limine menu size**: the 8 capped snapshots each carry a normal *and* a
+  vfio entry (~20 entries in `limine.conf`), and the menu timeout is 1 s.
+  Lowering `MAX_SNAPSHOT_ENTRIES` (or dropping the vfio twin for snapshots)
+  trims the menu without losing the rollback entries.
+- **Cold boot is where the firmware time really is**: 9.15 s (cold, 2026-10-12)
+  against 4.69 s (warm) — that difference is memory training. A CBS
+  *Memory Context Restore*-class setting (Smokeless UMAF) is the only remaining
+  firmware-side lever, and it only pays on cold boots.
+- Hygiene: `/etc/limine-snapper-sync.conf.pacnew` (2026-10-10) is waiting for a
+  `pacdiff`; the live config predates it (it carries the `MAX_SNAPSHOT_ENTRIES=8`
+  the boot-tuning run_once added).
+
 ## The initramfs was 56 MiB, and most of it was firmware for GPUs this machine does not have
 
 `systemd-analyze` before this change: firmware **4.6 s** + loader **3.6 s** + kernel
