@@ -132,10 +132,13 @@ between 9.1 and 9.8 s.
   `evidence/ifr-static/bridge/experiment-cbs-memory/`), and the module that
   would implement it (`AmdMemRestorePei`) sits in the `61C0F511` boot-block
   volumes -- the region whose modification bricked the machine on 2026-10-11.
-- **A boot that follows a flash write is ~4.5 s slower in firmware** (2 out of
-  2 so far). Worth remembering before reading anything into a slow boot after
-  flashing -- and possibly a hint that the platform runs an extra pass once the
-  flash content changes.
+- **A boot that follows a flash write is ~4.5 s slower in firmware**, and the
+  hint was right: the platform does run an extra pass once flash content
+  changes. On 2026-10-13 a 4 KiB marker written into the free space of the DXE
+  volume made it refuse to boot ("BIOS corrupted") -- the pass is real, and it
+  checks that volume. Recovered with the CH341; account in myomen15
+  `evidence/unbrick/STATUS-2026-10-14.md`. A slow boot after a flash write is
+  not a failure by itself, but it *is* the platform noticing.
 - Hygiene: `/etc/limine-snapper-sync.conf.pacnew` (2026-10-10) is waiting for a
   `pacdiff`; the live config predates it (it carries the `MAX_SNAPSHOT_ENTRIES=8`
   the boot-tuning run_once added).
