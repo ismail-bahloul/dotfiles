@@ -4,7 +4,7 @@
 # Run once by chezmoi (re-runs if this file changes)
 # Install the omenctl systemd units + udev rules (fans + power profiles).
 #
-# omenctl itself is installed by run_once_03-omenctl.sh. This script also
+# omenctl itself is installed by run_onchange_03-omenctl.sh. This script also
 # retires the legacy power-profile stack (bash script, timer, watcher, udev).
 # The hash below covers the etc/ files this script installs, so chezmoi re-runs
 # it when one of them changes (a plain run_once_ would not notice).
@@ -47,11 +47,11 @@ sudo rm -f /etc/systemd/system/ryzenadj-profile.service /etc/systemd/system/ryze
 sudo systemctl daemon-reload 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
-# omenctl must already be installed (run_once_03-omenctl.sh)
+# omenctl must already be installed (run_onchange_03-omenctl.sh)
 # ---------------------------------------------------------------------------
 for f in /usr/local/bin/omenctl /usr/local/bin/omenctl-run.sh /etc/systemd/system/omenctl.service; do
   if [ ! -e "$f" ]; then
-    log_fatal "$f is missing; run run_once_03-omenctl.sh first"
+    log_fatal "$f is missing; run run_onchange_03-omenctl.sh first"
   fi
 done
 

@@ -1,7 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# run_once_03-omenctl.sh
-# Run once by chezmoi (re-runs if this file changes)
+# run_onchange_03-omenctl.sh
+# Run by chezmoi when this file changes. The pinned ref below is part of the
+# content, so bumping it re-runs the install.
 # Install/update omenctl — fans + power profiles for the HP OMEN 15-en1xxx.
 #
 # omenctl is developed in myomen15 and published as a standalone repo. Use a
@@ -11,11 +12,14 @@
 set -e
 
 # Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
-# present when run_once scripts run under chezmoi, so no fallback is needed.
+# present when scripts run under chezmoi, so no fallback is needed.
 source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
 
 OMENCTL_REPO="${OMENCTL_REPO:-https://github.com/ismail-bahloul/omenctl.git}"
 OMENCTL_LOCAL="${OMENCTL_SRC:-$HOME/DATA/05_Code/Projects/myomen15/omenctl}"
+# Pinned release. Bump this line to publish a new version; run_onchange_ sees
+# the changed content and re-runs this script.
+OMENCTL_REF="${OMENCTL_REF:-v0.1.0}"
 MARKER=/usr/local/share/omenctl.rev
 
 WORKDIR=""
@@ -27,9 +31,9 @@ if [ -f "$OMENCTL_LOCAL/omenctl.py" ]; then
   log_info "Using local omenctl checkout: $SRC"
 else
   WORKDIR=$(mktemp -d)
-  log_info "Cloning omenctl from $OMENCTL_REPO..."
-  if ! git clone --depth=1 "$OMENCTL_REPO" "$WORKDIR/omenctl" > /dev/null 2>&1; then
-    log_fatal "could not clone $OMENCTL_REPO (set OMENCTL_SRC to a local checkout)"
+  log_info "Cloning omenctl $OMENCTL_REF from $OMENCTL_REPO..."
+  if ! git clone --depth=1 --branch "$OMENCTL_REF" "$OMENCTL_REPO" "$WORKDIR/omenctl" > /dev/null 2>&1; then
+    log_fatal "could not clone $OMENCTL_REPO at $OMENCTL_REF (set OMENCTL_SRC to a local checkout)"
   fi
   SRC="$WORKDIR/omenctl"
 fi

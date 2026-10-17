@@ -36,7 +36,7 @@ dotfiles/
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
 ├── run_once_01-packages.sh           # pacman + AUR packages
 ├── run_once_02-wine-staging.sh       # wine-staging 9.21 standalone runner
-├── run_once_03-omenctl.sh            # omenctl (fans + power profiles)
+├── run_onchange_03-omenctl.sh        # omenctl (fans + power profiles), pinned ref
 ├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
 ├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
 ├── run_once_06-libvirt-setup.sh      # libvirt services + groups
@@ -48,7 +48,7 @@ dotfiles/
 ├── run_once_12-remove-nbfc.sh        # one-time migration: remove the old nbfc fork
 ├── packages.pacman                   # official repo packages
 ├── packages.aur                      # AUR packages
-├── etc/                              # system files (units, udev, initcpio) installed by run_once_03/04/11
+├── etc/                              # system files (units, udev, initcpio) installed by run_onchange_03/run_once_04/11
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # why the config here is the way it is
@@ -145,9 +145,10 @@ profile and the dGPU lock. It replaces both `nbfc` and the old `power-profile`
 bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
 
 - Upstream: <https://github.com/ismail-bahloul/omenctl>
-- Installed by `run_once_03-omenctl.sh`: a local checkout is used when
-  `OMENCTL_SRC` points at one (default: `myomen15/omenctl`), otherwise the repo
-  is cloned.
+- Installed by `run_onchange_03-omenctl.sh`: a local checkout is used when
+  `OMENCTL_SRC` points at one (default: `myomen15/omenctl`), otherwise the
+  pinned tag (`OMENCTL_REF`, default `v0.1.0`) is cloned. Bump the ref in the
+  script to publish an update; `run_onchange_` re-runs on the changed content.
 - Units: `omenctl.service` (fan governor), `omenctl-profile.service` +
   `omenctl-profile.timer` (periodic re-apply), `omenctl-watch.service`
   (inotify/drift watcher), and the AC udev rule `99-omenctl.rules`.
@@ -159,7 +160,7 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
   install or start `nbfc`; a leftover `nbfc_service` from an older install is
   left disabled and unused.
 - Desktop: `Desktop/omenctl.desktop` and the application-menu entry call
-  `/usr/local/bin/omenctl-tui`, a symlink created by `run_once_03` to the
+  `/usr/local/bin/omenctl-tui`, a symlink created by `run_onchange_03` to the
   chezmoi-deployed `~/.local/bin/omenctl-tui`. The icon is
   `dot_local/share/icons/hicolor/scalable/apps/omenctl.svg` (installed as
   `~/.local/share/icons/hicolor/scalable/apps/omenctl.svg`). The wrapper runs

@@ -13,7 +13,7 @@ test.sh
 .lib_logging.sh
 .lib_system.sh
 
-# System files installed by run_once_03/04 and run_once_11 (not deployed to ~/)
+# System files installed by run_onchange_03, run_once_04 and run_once_11 (not deployed to ~/)
 etc
 
 # Investigation notes + evidence, kept for the record (not deployed to ~/)
