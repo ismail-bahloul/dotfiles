@@ -1,12 +1,57 @@
 #!/bin/bash
 # One-time boot to Windows via UEFI BootNext (dynamic ID lookup)
-WIN_ID=$(efibootmgr -v 2>/dev/null | grep -i "Windows[^_]\|Windows Boot Manager" | grep -v "cachyos\|grub" | head -1 | sed 's/Boot\([0-9a-fA-F]*\).*/\1/')
+find_win_id() {
+  efibootmgr 2>/dev/null \
+    | grep -iE '^Boot[0-9A-Fa-f]+[ *].*Windows' \
+    | grep -viE 'cachyos|grub' \
+    | head -1 \
+    | sed -E 's/^Boot([0-9A-Fa-f]+).*/\1/'
+}
+
+WIN_ID=$(find_win_id)
 
 if [ -z "$WIN_ID" ]; then
-  echo "Error: Windows boot entry not found"
-  exit 1
+  # The NVRAM entry can disappear (firmware/NVRAM cleanup) while Windows' loader
+  # is still on the ESP. Re-create the entry instead of failing.
+  LOADER=/boot/EFI/Microsoft/Boot/bootmgfw.efi
+  if [ ! -f "$LOADER" ]; then
+    echo "Error: Windows boot entry not found, and $LOADER does not exist"
+    exit 1
+  fi
+
+  ESP_DEV=$(findmnt -no SOURCE /boot)
+  DISK_NAME=$(lsblk -no PKNAME "$ESP_DEV" | head -1)
+  PART_NUM=$(lsblk -no PARTN "$ESP_DEV" | head -1)
+  if [ -z "$DISK_NAME" ] || [ -z "$PART_NUM" ]; then
+    echo "Error: could not determine the ESP disk/partition for /boot"
+    exit 1
+  fi
+
+  OLD_ORDER=$(efibootmgr | sed -n 's/^BootOrder: //p')
+  echo "Windows boot entry missing; re-creating it on /dev/$DISK_NAME part $PART_NUM..."
+  if ! sudo efibootmgr --create --disk "/dev/$DISK_NAME" --part "$PART_NUM" \
+       --loader '\EFI\Microsoft\Boot\bootmgfw.efi' --label 'Windows Boot Manager' > /dev/null; then
+    echo "Error: failed to create the Windows boot entry"
+    exit 1
+  fi
+
+  WIN_ID=$(find_win_id)
+  if [ -z "$WIN_ID" ]; then
+    echo "Error: Windows boot entry still not found after creation"
+    exit 1
+  fi
+
+  # `efibootmgr --create` puts the new entry first; keep Limine (and the rest of
+  # the previous order) ahead of it so a normal reboot still lands in Limine.
+  NEW_ORDER=$(printf '%s' "$OLD_ORDER" | tr ',' '\n' | grep -v "^$WIN_ID$" | paste -sd, -)
+  if [ -n "$NEW_ORDER" ]; then
+    sudo efibootmgr --bootorder "$NEW_ORDER,$WIN_ID" > /dev/null
+  fi
 fi
 
-sudo efibootmgr --bootnext "$WIN_ID" > /dev/null 2>&1
+if ! sudo efibootmgr --bootnext "$WIN_ID" > /dev/null; then
+  echo "Error: could not set BootNext to $WIN_ID"
+  exit 1
+fi
 echo "Booting Windows (BootNext $WIN_ID)..."
 sudo reboot
