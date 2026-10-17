@@ -151,7 +151,8 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
   `omenctl-profile.timer` (periodic re-apply), `omenctl-watch.service`
   (inotify/drift watcher), and the AC udev rule `99-omenctl.rules`.
 - Commands: `omenctl status`, `omenctl profile auto|quiet|eco|perf`,
-  `omenctl fan cpu|gpu|all 0-100|auto`, `omenctl tui`, `omenctl start|stop`.
+  `omenctl fan cpu|gpu|all 0-100|auto`, `omenctl tui`,
+  `omenctl curve cpu|gpu`, `omenctl start|stop`.
 - Rollback: `sudo systemctl stop omenctl` writes `255` to both setpoints and
   hands the fans back to the EC's own (louder) curve. The dotfiles no longer
   install or start `nbfc`; a leftover `nbfc_service` from an older install is
