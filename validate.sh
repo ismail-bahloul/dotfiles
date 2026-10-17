@@ -28,7 +28,7 @@ SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
 # ─── Scripts in PATH ────────────────────────────────────────────────────────
 log_section "Scripts"
 
-for s in limine-boot-win limine-boot-vfio limine-boot-linux backup-data omenctl; do
+for s in limine-boot-win limine-boot-vfio limine-boot-linux backup-data omenctl omenctl-tui; do
   if command -v "$s" &>/dev/null || [ -f "$HOME/.local/bin/$s" ]; then
     log_pass "$s"
   else

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Launch the omenctl TUI from a desktop launcher.
+# Passwordless sudo is configured on this machine; if it is not, fall back to
+# the interactive prompt in the terminal the launcher opened.
+if sudo -n true 2>/dev/null; then
+  exec sudo -n /usr/local/bin/omenctl tui
+fi
+exec sudo /usr/local/bin/omenctl tui

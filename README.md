@@ -56,6 +56,8 @@ dotfiles/
 │   ├── boot-tuning.md                        # initramfs slimming + UEFI boot entries
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
 │   └── notes.md                              # versioned-vs-not, audio, SSH keys
+├── Desktop/
+│   └── omenctl.desktop                # desktop shortcut (runs `omenctl tui`)
 ├── dot_config/create_*                # created only if absent (Plasma/Kate own them afterwards)
 │   └── plasma-*.appletsrc             # panel/widgets layout (volatile → apply once)
 ├── dot_config/
@@ -71,6 +73,7 @@ dotfiles/
 │   │   ├── limine-boot-vfio          # one-time boot to VFIO kernel
 │   │   ├── limine-boot-linux         # restore boot to Linux
 │   │   ├── backup-data               # backup DATA to external drive
+│   │   ├── omenctl-tui               # desktop launcher wrapper (sudo + terminal)
 │   │   ├── mount-shared              # mount Windows SHARED (NTFS) in rw
 │   │   ├── umount-shared             # unmount SHARED before rebooting to Windows
 │   │   ├── deploy-plugins            # deploy Linux audio plugins (VST3/LV2/CLAP)
@@ -82,7 +85,8 @@ dotfiles/
 │   │   ├── material-you-prompt.py    # p10k prompt cache ← wallpaper (1x, not per prompt)
 │   │   ├── kitty-material-you-hook.sh# run by kde-material-you-colors → delegates to material-you-refresh
 │   │   └── material-you-refresh      # manual re-sync (safety net)
-│   └── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)
+│   ├── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)
+│   └── share/applications/omenctl.desktop  # application-menu entry for the TUI
 ```
 
 ## System files (`etc/`)
@@ -152,6 +156,12 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
   hands the fans back to the EC's own (louder) curve. The dotfiles no longer
   install or start `nbfc`; a leftover `nbfc_service` from an older install is
   left disabled and unused.
+- Desktop: `dot_Desktop/omenctl.desktop` and the application-menu entry call
+  `/usr/local/bin/omenctl-tui`, a symlink created by `run_once_03` to the
+  chezmoi-deployed `~/.local/bin/omenctl-tui`. The wrapper runs
+  `sudo -n omenctl tui` (falling back to an interactive prompt) and
+  `Terminal=true` opens it in the default terminal. If KDE asks to trust the
+  desktop file, right-click it and choose “Allow launching”.
 
 ## Aliases
 

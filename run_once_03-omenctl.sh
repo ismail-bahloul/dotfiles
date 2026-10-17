@@ -49,3 +49,7 @@ else
 fi
 
 log_pass "omenctl installed."
+
+# Stable absolute path for the desktop launcher (launchers do not use the
+# user's PATH; the target is the chezmoi-deployed wrapper).
+sudo ln -sf "$HOME/.local/bin/omenctl-tui" /usr/local/bin/omenctl-tui

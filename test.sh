@@ -63,9 +63,9 @@ for f in install.sh validate.sh run_once_*.sh*; do
   fi
 done
 
-for f in dot_local/bin/executable_limine-boot-* dot_local/bin/executable_backup-data; do
+for f in dot_local/bin/executable_limine-boot-* dot_local/bin/executable_omenctl-tui dot_local/bin/executable_backup-data; do
   base=$(basename "$f")
-  if head -1 "$f" | grep -q bash; then
+  if head -1 "$f" | grep -qE 'bash|sh'; then
     if bash -n "$f"; then
       log_pass "$base"
     else
