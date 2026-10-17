@@ -1,20 +1,37 @@
 #!/bin/bash
 # One-time boot to Windows via UEFI BootNext (dynamic ID lookup)
 find_win_id() {
-  efibootmgr 2>/dev/null \
+  efibootmgr -v 2>/dev/null \
     | grep -iE '^Boot[0-9A-Fa-f]+[ *].*Windows' \
     | grep -viE 'cachyos|grub' \
     | head -1 \
     | sed -E 's/^Boot([0-9A-Fa-f]+).*/\1/'
 }
 
+# A "Windows Boot Manager" entry can reappear pointing at a deleted
+# \EFI\cachyos\grubx64.efi (the HP firmware/Windows re-creates it). It is
+# unusable, and it can sit first in BootOrder. Drop those entries first.
+clean_bogus_win_entries() {
+  local ids id
+  ids=$(efibootmgr -v 2>/dev/null \
+    | grep -iE '^Boot[0-9A-Fa-f]+[ *].*Windows' \
+    | grep -iE 'cachyos|grub' \
+    | sed -E 's/^Boot([0-9A-Fa-f]+).*/\1/')
+  for id in $ids; do
+    echo "Removing stale Windows entry Boot$id (loader no longer exists)"
+    sudo efibootmgr -b "$id" -B > /dev/null
+  done
+}
+
+clean_bogus_win_entries
 WIN_ID=$(find_win_id)
 
 if [ -z "$WIN_ID" ]; then
   # The NVRAM entry can disappear (firmware/NVRAM cleanup) while Windows' loader
   # is still on the ESP. Re-create the entry instead of failing.
   LOADER=/boot/EFI/Microsoft/Boot/bootmgfw.efi
-  if [ ! -f "$LOADER" ]; then
+  # /boot is mounted fmask=0077, so a plain -f test fails as the user.
+  if ! sudo test -f "$LOADER"; then
     echo "Error: Windows boot entry not found, and $LOADER does not exist"
     exit 1
   fi

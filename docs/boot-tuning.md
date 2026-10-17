@@ -15,7 +15,9 @@ is machine state (NVRAM), not something a dotfiles repo can version.
   They are gone (both were unbootable) and Limine is kept early in `BootOrder`
   so it cannot be shadowed. The HP firmware re-promotes the USB entry to the
   front on its own — that one fails fast and is left in place. Check with
-  `efibootmgr`, repair with `efibootmgr -o`.
+  `efibootmgr`, repair with `efibootmgr -o`. The bogus Windows/grub entry came
+  back once (2026-10-17) and was put first in `BootOrder`; `limine-boot-win` now
+  deletes it before booting Windows and re-creates the real entry if needed.
 - **nouveau and its per-chipset NVIDIA firmware dropped from the initramfs**
   (`etc/initcpio/install/no-nouveau`). The `kms` hook resolves the NVIDIA GPU
   modalias to *both* `nvidia` and `nouveau`, and nouveau's `modinfo` declares the
