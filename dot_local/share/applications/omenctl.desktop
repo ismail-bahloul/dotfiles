@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=omenctl
+Name=Omenctl
 GenericName=Fans and power
 Comment=Live fan, temperature and power control for the HP OMEN 15
 Exec=/usr/local/bin/omenctl-tui
-Icon=utilities-system-monitor
+Icon=omenctl
 Terminal=true
 Categories=System;Monitor;
 Keywords=omen;fan;temperature;power;profile;quiet;eco;perf;

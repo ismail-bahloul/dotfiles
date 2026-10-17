@@ -86,7 +86,8 @@ dotfiles/
 │   │   ├── kitty-material-you-hook.sh# run by kde-material-you-colors → delegates to material-you-refresh
 │   │   └── material-you-refresh      # manual re-sync (safety net)
 │   ├── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)
-│   └── share/applications/omenctl.desktop  # application-menu entry for the TUI
+│   ├── share/applications/omenctl.desktop  # application-menu entry for the TUI
+│   └── share/icons/hicolor/scalable/apps/omenctl.svg  # launcher icon
 ```
 
 ## System files (`etc/`)
@@ -157,9 +158,11 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
   hands the fans back to the EC's own (louder) curve. The dotfiles no longer
   install or start `nbfc`; a leftover `nbfc_service` from an older install is
   left disabled and unused.
-- Desktop: `dot_Desktop/omenctl.desktop` and the application-menu entry call
+- Desktop: `Desktop/omenctl.desktop` and the application-menu entry call
   `/usr/local/bin/omenctl-tui`, a symlink created by `run_once_03` to the
-  chezmoi-deployed `~/.local/bin/omenctl-tui`. The wrapper runs
+  chezmoi-deployed `~/.local/bin/omenctl-tui`. The icon is
+  `dot_local/share/icons/hicolor/scalable/apps/omenctl.svg` (installed as
+  `~/.local/share/icons/hicolor/scalable/apps/omenctl.svg`). The wrapper runs
   `sudo -n omenctl tui` (falling back to an interactive prompt) and
   `Terminal=true` opens it in the default terminal. If KDE asks to trust the
   desktop file, right-click it and choose “Allow launching”.
