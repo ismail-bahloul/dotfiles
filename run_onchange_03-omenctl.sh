@@ -19,7 +19,7 @@ OMENCTL_REPO="${OMENCTL_REPO:-https://github.com/ismail-bahloul/omenctl.git}"
 OMENCTL_LOCAL="${OMENCTL_SRC:-$HOME/DATA/05_Code/Projects/myomen15/omenctl}"
 # Pinned release. Bump this line to publish a new version; run_onchange_ sees
 # the changed content and re-runs this script.
-OMENCTL_REF="${OMENCTL_REF:-v0.3.0}"
+OMENCTL_REF="${OMENCTL_REF:-v0.4.0}"
 MARKER=/usr/local/share/omenctl.rev
 
 WORKDIR=""

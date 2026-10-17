@@ -147,7 +147,7 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
 - Upstream: <https://github.com/ismail-bahloul/omenctl>
 - Installed by `run_onchange_03-omenctl.sh`: a local checkout is used when
   `OMENCTL_SRC` points at one (default: `myomen15/omenctl`), otherwise the
-  pinned tag (`OMENCTL_REF`, default `v0.3.0`) is cloned. Bump the ref in the
+  pinned tag (`OMENCTL_REF`, default `v0.4.0`) is cloned. Bump the ref in the
   script to publish an update; `run_onchange_` re-runs on the changed content.
 - Units: `omenctl.service` (fan governor), `omenctl-profile.service` +
   `omenctl-profile.timer` (periodic re-apply), `omenctl-watch.service`
