@@ -8,10 +8,7 @@ airwindows-consolidated-bin
 tal-reverb4-clap-bin
 zl-compressor-bin
 zl-equalizer-bin
-# nbfc-linux                # built via run_once_03-nbfc.sh (fork ismail-bahloul)
-# nbfc-qt                   # built via run_once_03-nbfc.sh (fork ismail-bahloul)
-
-# --- Applications ------------------------------------------------------------
+# --- AMD Hardware ------------------------------------------------------------
 vesktop-bin                 # Discord with native Wayland support
 upscayl-bin
 shutter-encoder-bin

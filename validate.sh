@@ -28,7 +28,7 @@ SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
 # ─── Scripts in PATH ────────────────────────────────────────────────────────
 log_section "Scripts"
 
-for s in limine-boot-win limine-boot-vfio limine-boot-linux backup-data power-profile; do
+for s in limine-boot-win limine-boot-vfio limine-boot-linux backup-data omenctl; do
   if command -v "$s" &>/dev/null || [ -f "$HOME/.local/bin/$s" ]; then
     log_pass "$s"
   else
@@ -59,22 +59,38 @@ fi
 # ─── Services ───────────────────────────────────────────────────────────────
 log_section "Services"
 
-# power-profile.service is a oneshot: once it has run it is inactive by design,
-# so check that it is enabled and that its periodic re-apply timer is running.
-if systemctl is-enabled power-profile.service &>/dev/null; then
-  log_pass "power-profile.service enabled"
+# omenctl owns the fans; the profile units are a oneshot, its timer and the
+# drift watcher. Check the daemon is running and the profile stack is enabled.
+if systemctl is-active omenctl.service &>/dev/null; then
+  log_pass "omenctl.service active (fan governor)"
 else
-  log_fail "power-profile.service not enabled"
+  log_fail "omenctl.service not active"
 fi
-if systemctl is-active power-profile.timer &>/dev/null; then
-  log_pass "power-profile.timer active"
+if systemctl is-enabled omenctl.service &>/dev/null; then
+  log_pass "omenctl.service enabled"
 else
-  log_fail "power-profile.timer not active"
+  log_fail "omenctl.service not enabled"
 fi
-if systemctl is-active nbfc_service.service &>/dev/null; then
-  log_pass "nbfc_service.service active"
+if systemctl is-enabled omenctl-profile.service &>/dev/null; then
+  log_pass "omenctl-profile.service enabled"
 else
-  log_warn "nbfc_service.service not active (may need hardware)"
+  log_fail "omenctl-profile.service not enabled"
+fi
+if systemctl is-active omenctl-profile.timer &>/dev/null; then
+  log_pass "omenctl-profile.timer active"
+else
+  log_fail "omenctl-profile.timer not active"
+fi
+if systemctl is-active omenctl-watch.service &>/dev/null; then
+  log_pass "omenctl-watch.service active"
+else
+  log_fail "omenctl-watch.service not active"
+fi
+# A stale legacy unit would fight omenctl for the CPU limits.
+if [ ! -e /etc/systemd/system/power-profile.service ] && [ ! -e /usr/local/bin/power-profile ]; then
+  log_pass "legacy power-profile removed"
+else
+  log_warn "legacy power-profile still present"
 fi
 for svc in nvidia-powerd.service nvidia-suspend.service nvidia-resume.service; do
   if systemctl is-enabled "$svc" &>/dev/null; then
@@ -122,8 +138,8 @@ fi
 # ─── Power profile ──────────────────────────────────────────────────────────
 log_section "Power profile"
 
-if command -v power-profile &>/dev/null; then
-  log_pass "Power-profile installed"
+if command -v omenctl &>/dev/null; then
+  log_pass "omenctl installed"
   GOV=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)
   if [ -n "$GOV" ]; then
     log_pass "CPU governor: $GOV"
@@ -134,10 +150,10 @@ if command -v power-profile &>/dev/null; then
   if [ "$DRV" = "amd-pstate-epp" ]; then
     log_pass "cpufreq driver: $DRV"
   else
-    log_warn "cpufreq driver: ${DRV:-unknown} (expected amd-pstate-epp; the EPP writes in power-profile need it)"
+    log_warn "cpufreq driver: ${DRV:-unknown} (expected amd-pstate-epp; the EPP writes in omenctl need it)"
   fi
 else
-  log_fail "Power-profile not installed"
+  log_fail "omenctl not installed"
 fi
 
 # ─── Boot tuning ────────────────────────────────────────────────────────────
@@ -228,13 +244,13 @@ else
   log_fail "Salat prayer widget missing"
 fi
 
-# ─── NBFC ───────────────────────────────────────────────────────────────────
-log_section "NBFC"
+# ─── omenctl fans ───────────────────────────────────────────────────────────
+log_section "omenctl fans"
 
-if [ -f /usr/share/nbfc/configs/my-nbfc.json ]; then
-  log_pass "Fan profile deployed"
+if [ -f /var/lib/omenctl/mode ]; then
+  log_pass "stored mode: $(cat /var/lib/omenctl/mode)"
 else
-  log_fail "Fan profile missing"
+  log_warn "no stored omenctl mode (/var/lib/omenctl/mode)"
 fi
 
 # ─── ZSH ────────────────────────────────────────────────────────────────────

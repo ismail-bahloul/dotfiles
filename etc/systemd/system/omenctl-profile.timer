@@ -1,7 +1,7 @@
-# Installed by run_once_04-power-profile.sh (dotfiles).
+# Installed by run_once_04-omenctl.sh (dotfiles).
 # Periodic re-apply: workaround for the EC/firmware overriding the limits.
 [Unit]
-Description=Power profile - periodic re-apply (EC override workaround)
+Description=omenctl profile - periodic re-apply (EC override workaround)
 
 [Timer]
 OnBootSec=1min

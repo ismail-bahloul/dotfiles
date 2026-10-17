@@ -73,7 +73,8 @@ before → after (two consecutive boots, same machine):
 
 (firmware/loader moved the *wrong* way by ~0.45 s combined — that is BIOS POST
 and Limine menu jitter, not related to the change; the OS-side gain is ~3.5 s.)
-A side effect worth noting: `power-profile.service` (2.0 s → 0.12 s) and
+A side effect worth noting: `omenctl-profile.service` (then named
+`power-profile.service`; 2.0 s → 0.12 s) and
 `nvidia-persistenced.service` (1.7 s → 0.02 s) also got much faster, and
 `proton.VPN.service` left the critical chain — they were previously serialised
 behind the stalled udev/GPU work.

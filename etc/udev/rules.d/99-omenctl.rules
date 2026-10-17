@@ -1,0 +1,8 @@
+# Installed by run_once_04-omenctl.sh (dotfiles).
+# Re-apply the power mode on AC plug/unplug.
+# Uses `guard`, not `auto`: `auto` always re-applies and would silently drop a
+# manually selected PERF mode (4.47 GHz, GPU unlocked) on every AC transition.
+# `guard` refuses to re-apply while the `performance` governor is active, same as
+# omenctl-profile.service.
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="ACAD", ATTR{online}=="1", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/omenctl profile guard"
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="ACAD", ATTR{online}=="0", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/omenctl profile guard"

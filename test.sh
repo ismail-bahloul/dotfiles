@@ -63,7 +63,7 @@ for f in install.sh validate.sh run_once_*.sh*; do
   fi
 done
 
-for f in dot_local/bin/executable_limine-boot-* dot_local/bin/executable_power-profile dot_local/bin/executable_backup-data; do
+for f in dot_local/bin/executable_limine-boot-* dot_local/bin/executable_backup-data; do
   base=$(basename "$f")
   if head -1 "$f" | grep -q bash; then
     if bash -n "$f"; then

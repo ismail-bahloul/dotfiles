@@ -1,4 +1,6 @@
-# Installed by run_once_04-power-profile.sh (dotfiles).
+# Installed by run_once_04-omenctl.sh (dotfiles).
+#
+# The profile logic lives in `omenctl profile` (github.com/ismail-bahloul/omenctl).
 #
 # ExecStart uses `guard`, not `auto`: `guard` behaves like `auto` except that it
 # refuses to re-apply while the `performance` governor is active, so a manually
@@ -9,11 +11,11 @@
 # never re-activates, and the timer's next elapse resolves to "infinity" after a
 # single run (the periodic re-apply silently dies).
 [Unit]
-Description=Power profile - AC/battery CPU/GPU power & temp limits
+Description=omenctl profile - re-apply the stored power mode
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/power-profile guard
+ExecStart=/usr/local/bin/omenctl profile guard
 Nice=-5
 
 [Install]

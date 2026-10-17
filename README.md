@@ -36,8 +36,8 @@ dotfiles/
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
 ├── run_once_01-packages.sh           # pacman + AUR packages
 ├── run_once_02-wine-staging.sh       # wine-staging 9.21 standalone runner
-├── run_once_03-nbfc.sh               # nbfc-linux + nbfc-qt (forks)
-├── run_once_04-power-profile.sh.tmpl  # RyzenAdj + NVIDIA power profiles + EC re-apply timer
+├── run_once_03-omenctl.sh            # omenctl (fans + power profiles)
+├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
 ├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
 ├── run_once_06-libvirt-setup.sh      # libvirt services + groups
 ├── run_once_07-looking-glass.sh      # Looking Glass shared memory
@@ -45,9 +45,10 @@ dotfiles/
 ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
 ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
 ├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
+├── run_once_12-remove-nbfc.sh        # one-time migration: remove the old nbfc fork
 ├── packages.pacman                   # official repo packages
 ├── packages.aur                      # AUR packages
-├── etc/                              # system files (units, udev, initcpio) installed by run_once_04/11
+├── etc/                              # system files (units, udev, initcpio) installed by run_once_03/04/11
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # why the config here is the way it is
@@ -55,7 +56,6 @@ dotfiles/
 │   ├── boot-tuning.md                        # initramfs slimming + UEFI boot entries
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
 │   └── notes.md                              # versioned-vs-not, audio, SSH keys
-├── my-nbfc.json                       # custom fan profile (NBFC)
 ├── dot_config/create_*                # created only if absent (Plasma/Kate own them afterwards)
 │   └── plasma-*.appletsrc             # panel/widgets layout (volatile → apply once)
 ├── dot_config/
@@ -71,7 +71,6 @@ dotfiles/
 │   │   ├── limine-boot-vfio          # one-time boot to VFIO kernel
 │   │   ├── limine-boot-linux         # restore boot to Linux
 │   │   ├── backup-data               # backup DATA to external drive
-│   │   ├── power-profile             # CPU/GPU power management
 │   │   ├── mount-shared              # mount Windows SHARED (NTFS) in rw
 │   │   ├── umount-shared             # unmount SHARED before rebooting to Windows
 │   │   ├── deploy-plugins            # deploy Linux audio plugins (VST3/LV2/CLAP)
@@ -93,7 +92,7 @@ versioned under `etc/` with the **same path they have on the machine**, so the
 repo tree mirrors `/etc`. They are not deployed by chezmoi itself (`etc` is in
 `.chezmoiignore`); a `run_once_` script installs them:
 
-- `run_once_04-power-profile.sh.tmpl` — the power-profile units and udev rules
+- `run_once_04-omenctl.sh.tmpl` — the omenctl profile/watch units and udev rules
 - `run_once_11-boot-tuning.sh.tmpl` — the initramfs hooks and the VFIO drop-in
 
 Both use `install_system_file` (`.lib_system.sh`), which copies a file only if it
@@ -127,10 +126,32 @@ missing hash entry or a hand-edited `/etc` file shows up as a failure.
 - **GPU**: NVIDIA RTX 3070 + AMD Vega (VFIO passthrough for VM)
 - **Audio**: Pipewire (JACK) + REAPER + yabridge (Windows VST bridge)
 - **Virtualization**: QEMU + virt-manager + distrobox
-- **Fan control**: nbfc-linux (fork ismail-bahloul)
-- **Power mgmt**: RyzenAdj + NVIDIA power profiles (AC/battery auto, re-applied every 5 min as a safety net)
+- **Fan control**: omenctl (EC setpoints, tuned curve, safety contract)
+- **Power mgmt**: omenctl profile (auto/quiet/eco/perf, AC/battery) + RyzenAdj + NVIDIA
 - **Wine**: wine-staging 9.21 standalone runner (~/.local/share/wine-runners/)
 - **Peripherals**: Logitech MX Master 3S (logiops)
+
+## omenctl
+
+`omenctl` is the single tool for the fans and the power profiles on this
+machine: it owns the two EC fan setpoints, runs the tuned curve at 1 Hz, and
+applies `auto` / `quiet` / `eco` / `perf` across the CPU limits, the platform
+profile and the dGPU lock. It replaces both `nbfc` and the old `power-profile`
+bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
+
+- Upstream: <https://github.com/ismail-bahloul/omenctl>
+- Installed by `run_once_03-omenctl.sh`: a local checkout is used when
+  `OMENCTL_SRC` points at one (default: `myomen15/omenctl`), otherwise the repo
+  is cloned.
+- Units: `omenctl.service` (fan governor), `omenctl-profile.service` +
+  `omenctl-profile.timer` (periodic re-apply), `omenctl-watch.service`
+  (inotify/drift watcher), and the AC udev rule `99-omenctl.rules`.
+- Commands: `omenctl status`, `omenctl profile auto|quiet|eco|perf`,
+  `omenctl fan cpu|gpu|all 0-100|auto`, `omenctl tui`, `omenctl start|stop`.
+- Rollback: `sudo systemctl stop omenctl` writes `255` to both setpoints and
+  hands the fans back to the EC's own (louder) curve. The dotfiles no longer
+  install or start `nbfc`; a leftover `nbfc_service` from an older install is
+  left disabled and unused.
 
 ## Aliases
 
@@ -141,9 +162,11 @@ missing hash entry or a hand-edited `/etc` file shows up as a failure.
 | `vv` | One-time boot to VFIO GPU passthrough kernel |
 | `ll` | One-time boot to default Linux kernel |
 | `backup` | Backup DATA to external drive |
-| `power` | Show power profile status (CPU/GPU temps, limits, fans) |
-| `balanced` | Reset to balanced profile (auto AC/battery) |
-| `perf` | Switch to performance mode (4.4 GHz / GPU unlocked) |
+| `power` | Show power status (CPU/GPU temps, limits, fans) |
+| `auto` | Follow AC/battery (default profile) |
+| `quiet` | AC/battery with CPU boost off (cooler/silent) |
+| `eco` | Battery envelope even on AC (15 W / 2.4 GHz) |
+| `perf` | Switch to performance mode (4.47 GHz / GPU unlocked) |
 | `material-refresh` | Re-sync kitty/btop/zed/prompt to current wallpaper colors |
 
 ## Vendored third-party widgets
