@@ -51,3 +51,6 @@ alias auto="sudo omenctl profile auto && sudo omenctl status"
 alias quiet="sudo omenctl profile quiet && sudo omenctl status"
 alias eco="sudo omenctl profile eco && sudo omenctl status"
 alias perf="sudo omenctl profile perf && sudo omenctl status"
+
+# --- CachyOS : mise à jour complète (dépôts + AUR + Flatpak + nettoyage) ---
+alias uu='$HOME/DATA/05_Code/Projects/arch-auto-update/arch-auto-update'
