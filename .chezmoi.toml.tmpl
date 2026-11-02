@@ -1,0 +1,18 @@
+# =============================================================================
+# .chezmoi.toml.tmpl — seeded into ~/.config/chezmoi/chezmoi.toml by
+# `chezmoi init` (only when that file does not already exist).
+#
+# Opt-in switches live under [data]. The scripts read them with hasKey and fall
+# back to the disabled value when a key is absent, so an older config without
+# them keeps rendering instead of failing.
+#
+#   wine = true  ->  run_once_02-wine-staging.sh.tmpl installs the wine-staging
+#                    9.21 standalone runner, winetricks, yabridge and
+#                    yabridgectl. Nothing else in the repo depends on Wine.
+#
+# No prompt is used on purpose: `chezmoi init --apply` runs from install.sh and
+# must never block waiting for an answer.
+# =============================================================================
+
+[data]
+    wine = false

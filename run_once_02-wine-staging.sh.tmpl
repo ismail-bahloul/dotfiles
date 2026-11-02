@@ -1,17 +1,24 @@
 #!/bin/bash
 # =============================================================================
-# run_once_02-wine-staging.sh
+# run_once_02-wine-staging.sh.tmpl
 # Run once by chezmoi (re-runs if this file changes)
 # Install wine-staging 9.21 as a standalone runner in ~/.local/share/wine-runners/
 # No system packages — fully portable, multiple runners can coexist.
 # Idempotent: safe to re-run, skips if already set up.
+#
+# OPTIONAL — disabled unless `wine = true` is set in the chezmoi data
+# (~/.config/chezmoi/chezmoi.toml, [data] section). The wine stack (runner,
+# winetricks, yabridge) is the only thing this repo installs for Windows VSTs;
+# everything else works without it.
 # =============================================================================
+{{ $wine := false }}{{ if hasKey . "wine" }}{{ $wine = index . "wine" }}{{ end }}
 set -euo pipefail
 
 # Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
 # present when run_once scripts run under chezmoi, so no fallback is needed.
 source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
 
+{{ if $wine }}
 WINE_VERSION="9.21-1"
 WINE_PKG="wine-staging-${WINE_VERSION}-x86_64.pkg.tar.zst"
 ALA_URL="https://archive.archlinux.org/packages/w/wine-staging/${WINE_PKG}"
@@ -43,6 +50,20 @@ is_runner_ok() {
 
   return 0
 }
+
+# ---------------------------------------------------------------------------
+# 0. Wine-only packages
+#    These used to live in packages.pacman, which made every machine carry them
+#    even with wine disabled. They are installed here so they follow the switch.
+# ---------------------------------------------------------------------------
+if ! command -v winetricks >/dev/null 2>&1; then
+  log_info "Installing winetricks..."
+  sudo pacman -S --needed --noconfirm winetricks
+fi
+if ! command -v yabridgectl >/dev/null 2>&1 && command -v paru >/dev/null 2>&1; then
+  log_info "Installing yabridge..."
+  paru -S --needed --noconfirm yabridge yabridgectl
+fi
 
 # ---------------------------------------------------------------------------
 # 1. Check if already installed
@@ -129,3 +150,6 @@ else
 fi
 
 log_pass "Wine setup complete."
+{{ else }}
+log_skip "wine disabled (set wine = true in ~/.config/chezmoi/chezmoi.toml, [data])"
+{{ end }}

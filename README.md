@@ -27,6 +27,31 @@ chezmoi update --apply
 
 SSH works too if you prefer: `git@github.com:ismail-bahloul/dotfiles.git`.
 
+## Optional components
+
+A few pieces are opt-in through chezmoi data, so a machine does not install what
+it does not use. `chezmoi init` seeds `~/.config/chezmoi/chezmoi.toml` with the
+keys at their defaults; change the key there and re-apply. (No prompt: `chezmoi
+init --apply` runs from `install.sh` and must not block.)
+
+| Key | Default | What it enables |
+|---|---|---|
+| `wine` | `false` | the wine-staging 9.21 standalone runner (`run_once_02-wine-staging.sh.tmpl`), plus `winetricks`, `yabridge` and `yabridgectl` — the Windows-VST bridge |
+
+```toml
+# ~/.config/chezmoi/chezmoi.toml
+[data]
+    wine = true
+```
+
+```bash
+chezmoi apply
+```
+
+Turning it off does **not** uninstall an existing runner — it only stops the
+`run_once_02` script from installing one. Remove `~/.local/share/wine-runners/`
+and the `/usr/local/bin/wine*` symlinks by hand if you want it gone.
+
 ## Structure
 
 ```
@@ -35,7 +60,7 @@ dotfiles/
 ├── validate.sh                       # post-install verification script
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
 ├── run_once_01-packages.sh           # pacman + AUR packages
-├── run_once_02-wine-staging.sh       # wine-staging 9.21 standalone runner
+├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: `wine = true` in chezmoi data)
 ├── run_onchange_03-omenctl.sh        # omenctl (fans + power profiles), pinned ref
 ├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
 ├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
@@ -45,7 +70,6 @@ dotfiles/
 ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
 ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
 ├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
-├── run_once_12-remove-nbfc.sh        # one-time migration: remove the old nbfc fork
 ├── packages.pacman                   # official repo packages
 ├── packages.aur                      # AUR packages
 ├── etc/                              # system files (units, udev, initcpio) installed by run_onchange_03/run_once_04/11
@@ -55,7 +79,8 @@ dotfiles/
 │   ├── README.md                             # index
 │   ├── boot-tuning.md                        # initramfs slimming + UEFI boot entries
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
-│   └── notes.md                              # versioned-vs-not, audio, SSH keys
+│   ├── notes.md                              # versioned-vs-not, audio, SSH keys
+│   └── legacy/remove-nbfc.sh                 # retired one-shot: nbfc fork removal (manual)
 ├── Desktop/
 │   └── omenctl.desktop                # desktop shortcut (runs `omenctl tui`)
 ├── dot_config/create_*                # created only if absent (Plasma/Kate own them afterwards)
@@ -158,7 +183,9 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
 - Rollback: `sudo systemctl stop omenctl` writes `255` to both setpoints and
   hands the fans back to the EC's own (louder) curve. The dotfiles no longer
   install or start `nbfc`; a leftover `nbfc_service` from an older install is
-  left disabled and unused.
+  left disabled and unused. The one-time removal script is retired in
+  `docs/legacy/remove-nbfc.sh` (run it by hand only on a machine that still has
+  the old nbfc-linux fork installed).
 - Desktop: `Desktop/omenctl.desktop` and the application-menu entry call
   `/usr/local/bin/omenctl-tui`, a symlink created by `run_onchange_03` to the
   chezmoi-deployed `~/.local/bin/omenctl-tui`. The icon is

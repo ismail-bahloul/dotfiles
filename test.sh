@@ -47,6 +47,78 @@ git ls-files --others --exclude-standard 2>/dev/null | while IFS= read -r f; do
   log_warn "Untracked file: $f"
 done
 
+# ─── Contract: every etc/ file is covered by an etc-hash ─────────────────────
+# chezmoi re-runs a script only when the script itself changes. The etc-hash
+# line in a .tmpl stands in for the installed files, so a file under etc/ that
+# is not listed there is never redeployed after an edit.
+log_section "etc/ coverage"
+
+while IFS= read -r -d '' f; do
+  if grep -qhF "\"$f\"" run_* 2>/dev/null; then
+    log_pass "$f"
+  else
+    log_fail "$f is not listed in any etc-hash (never redeployed)"
+  fi
+done < <(find etc -type f -print0 | sort -z)
+
+for f in run_*.tmpl; do
+  [ -f "$f" ] || continue
+  if grep -q "install_system_file" "$f" && ! grep -q "^# etc-hash:" "$f"; then
+    log_fail "$f installs etc/ files but carries no etc-hash line"
+  else
+    log_pass "$f"
+  fi
+done
+
+# ─── Contract: scripts ↔ README ──────────────────────────────────────────────
+# The README is the map of the repo. A script missing from it, or a script it
+# mentions that no longer exists, is documentation drift.
+log_section "Scripts documented"
+
+for f in run_*.sh*; do
+  [ -f "$f" ] || continue
+  if grep -qF "$f" README.md; then
+    log_pass "$f documented"
+  else
+    log_fail "$f is not mentioned in README.md"
+  fi
+done
+
+while IFS= read -r r; do
+  if [ -f "$r" ]; then
+    log_pass "README mentions $r"
+  else
+    log_fail "README mentions $r, but the file does not exist"
+  fi
+done < <(grep -oE 'run_(once|onchange)_[0-9]+-[A-Za-z0-9._-]+\.sh(\.tmpl)?' README.md | sort -u)
+
+# ─── Package lists ───────────────────────────────────────────────────────────
+log_section "Package lists"
+
+for f in packages.pacman packages.aur; do
+  dups=$(grep -v '^[[:space:]]*#' "$f" | awk 'NF {print $1}' | sort | uniq -d)
+  if [ -z "$dups" ]; then
+    log_pass "$f: no duplicate entry"
+  else
+    log_fail "$f: duplicate entry: $(printf '%s ' $dups)"
+  fi
+done
+
+# ─── Contract: top-level entries are deployed or explicitly ignored ──────────
+log_section "chezmoi scope"
+
+for entry in * .[!.]*; do
+  case "$entry" in
+    dot_*|run_*|Desktop|.git|.gitattributes|.gitignore|.chezmoi*) continue ;;
+  esac
+  [ -e "$entry" ] || continue
+  if grep -qxF "$entry" .chezmoiignore; then
+    log_pass "$entry ignored"
+  else
+    log_fail "$entry is neither a dot_ target nor listed in .chezmoiignore"
+  fi
+done
+
 # ─── Shell syntax ───────────────────────────────────────────────────────────
 log_section "Shell syntax"
 

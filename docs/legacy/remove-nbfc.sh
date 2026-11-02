@@ -1,16 +1,24 @@
 #!/bin/bash
 # =============================================================================
-# run_once_12-remove-nbfc.sh
-# One-time migration: remove the nbfc-linux/nbfc-qt install built by the old
+# remove-nbfc.sh  (retired: was run_once_12-remove-nbfc.sh)
+#
+# ARCHIVED — chezmoi no longer runs this. It was a one-time migration for
+# machines that still had the old nbfc-linux/nbfc-qt fork installed; the repo
+# has not installed nbfc for a long time (omenctl replaced it). Kept for the
+# record and for a machine restored from an old backup. Run it by hand:
+#
+#   bash ~/.local/share/chezmoi/docs/legacy/remove-nbfc.sh
+#
+# Original purpose: remove the nbfc-linux/nbfc-qt install built by the old
 # run_once_03-nbfc.sh. omenctl now owns the fans; the EC's own curve (255) is
 # the fallback. The guard (the fork marker) means a pacman-managed nbfc is
 # never touched.
 # =============================================================================
 set -e
 
-# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
-# present when run_once scripts run under chezmoi, so no fallback is needed.
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+# Logging helpers: resolve them relative to this file, so the script also works
+# outside chezmoi's run_once context.
+source "${CHEZMOI_SOURCE_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.lib_logging.sh"
 
 MARKER=/usr/local/share/nbfc-linux-fork.rev
 
