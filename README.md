@@ -27,6 +27,20 @@ chezmoi update --apply
 
 SSH works too if you prefer: `git@github.com:ismail-bahloul/dotfiles.git`.
 
+### Where the source lives
+
+`chezmoi` reads its source directory from `~/.local/share/chezmoi`. On the
+development machine that path is a **symlink to this repository**, so editing a
+file here and running `chezmoi apply` are the same operation — there is no
+second copy that can silently drift. A fresh machine gets a real clone at the
+same path from `install.sh`; the commands are identical either way.
+
+```bash
+# one-time, on a machine where the repo already lives elsewhere
+mv ~/.local/share/chezmoi ~/.local/share/chezmoi.bak
+ln -s ~/DATA/05_Code/Projects/dotfiles ~/.local/share/chezmoi
+```
+
 ## Optional components
 
 A few pieces are opt-in through chezmoi data, so a machine does not install what
