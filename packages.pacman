@@ -29,6 +29,15 @@ realtime-privileges
 rtirq
 lsp-plugins                    # CLAP + VST3 + LV2 (meta-package)
 
+# --- Shell (zsh stack used by dot_zshrc) -------------------------------------
+zsh
+zsh-theme-powerlevel10k         # prompt engine (~/.p10k.zsh holds the config)
+zsh-autosuggestions
+zsh-syntax-highlighting
+zsh-history-substring-search
+zsh-completions
+pkgfile                         # "command not found" handler (needs pkgfile --update)
+
 # --- Monitoring --------------------------------------------------------------
 btop
 nvtop
