@@ -86,6 +86,9 @@ dotfiles/
 ├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
 ├── packages.pacman                   # official repo packages
 ├── packages.aur                      # AUR packages
+├── dot_zshrc                         # zsh: p10k + plugins with guards (no distro config package)
+├── dot_p10k.zsh                      # p10k prompt config (regenerate: `p10k configure` + `chezmoi add`)
+├── dot_gitconfig                     # git config: credential helpers + aliases (identity = untracked ~/.config/git/local)
 ├── etc/                              # system files (units, udev, initcpio) installed by run_onchange_03/run_once_04/11
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
@@ -175,7 +178,7 @@ missing hash entry or a hand-edited `/etc` file shows up as a failure.
 - **Wine**: wine-staging 9.21 standalone runner (~/.local/share/wine-runners/)
 - **Peripherals**: Logitech MX Master 3S (logiops)
 
-## omenctl
+## Omenctl
 
 `omenctl` is the single tool for the fans and the power profiles on this
 machine: it owns the two EC fan setpoints, runs the tuned curve at 1 Hz, and

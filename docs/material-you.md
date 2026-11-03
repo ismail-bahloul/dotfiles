@@ -14,6 +14,10 @@ Material You → `on_change_hook` (`kitty-material-you-hook.sh`) **delegates to
 `material-you-refresh`** (kitty + btop + Zed + prompt cache) → kitty reloads
 (`pkill -USR1`).
 
+**kitty tab bar**: `powerline` style (set in `kitty.conf`); the generator
+emits `active_tab_background` = accent and `inactive_tab_background` = an
+accent-tinted surface, so the bottom tabs follow the wallpaper as well.
+
 **p10k prompt**: `material-you-prompt.py` writes `~/.cache/material-you/prompt.zsh`
 (accent `~`/`❯`), which `.zshrc` "sources" in `precmd` → **no process launched on
 every prompt** (previously: 2 `awk` per prompt).

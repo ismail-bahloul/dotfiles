@@ -1,0 +1,21 @@
+# This file is versioned in a PUBLIC repo: the [user] identity is deliberately
+# not here. It lives in ~/.config/git/local (not managed by chezmoi).
+[include]
+	path = ~/.config/git/local
+
+[init]
+	defaultBranch = main
+
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gitlab.freedesktop.org"]
+	helper =
+	helper = !/usr/bin/glab auth git-credential
+
+[alias]
+	st = status
+	lg = log --oneline --graph --decorate
