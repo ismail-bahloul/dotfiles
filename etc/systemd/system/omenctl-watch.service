@@ -9,7 +9,7 @@
 # SMU limits for drift that writes nothing, and re-applies the stored mode
 # in-process. The timer stays as a backstop for anything neither path notices.
 [Unit]
-Description=omenctl watch - re-apply the stored mode when the EC clobbers it
+Description=Omenctl watch - re-apply the stored mode when the EC clobbers it
 
 [Service]
 Type=simple

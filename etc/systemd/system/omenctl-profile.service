@@ -11,7 +11,7 @@
 # never re-activates, and the timer's next elapse resolves to "infinity" after a
 # single run (the periodic re-apply silently dies).
 [Unit]
-Description=omenctl profile - re-apply the stored power mode
+Description=Omenctl profile - re-apply the stored power mode
 
 [Service]
 Type=oneshot
