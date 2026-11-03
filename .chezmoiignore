@@ -1,6 +1,6 @@
-# .chezmoiignore — files in the source dir that chezmoi should NOT deploy
-# By default, only files with dot_ prefix are deployed to ~/
-# This file explicitly excludes non-deployable assets
+# .chezmoiignore — files in the source dir that chezmoi should NOT deploy.
+# chezmoi deploys every entry of the source dir (the dot_ prefix only renames
+# it to a leading dot), so anything that must stay repo-only is listed below.
 
 
 packages.pacman
