@@ -53,6 +53,24 @@ See [`material-you.md`](material-you.md).
 
 The initramfs and UEFI boot-entry work is in [`boot-tuning.md`](boot-tuning.md).
 
+## WiFi regulatory domain
+
+`cachyos-iw-set-regdomain.service` (path-triggered on `/etc/localtime`)
+derives the country from `/usr/share/zoneinfo/zone.tab`. It can fail with
+`zone.tab: No such file or directory` when a `tzdata` upgrade swaps that file
+while the unit runs — observed once, right at the `tzdata` upgrade during a
+`uu` run. The failure is transient and harmless: the domain already set (FR)
+stays in force, and the next timezone change re-runs the unit. Re-run it to
+clear the failed state instead of building a workaround:
+
+```bash
+sudo systemctl restart cachyos-iw-set-regdomain.service
+```
+
+`/etc/iw-regdomain` (`COUNTRY=FR`) would make the unit independent of
+`zone.tab`, but it pins the country and defeats the timezone tracking, so it
+is deliberately not used on a laptop that may travel.
+
 ---
 
 Back to the [main README](../README.md).
