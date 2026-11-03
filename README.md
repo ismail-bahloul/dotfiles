@@ -227,6 +227,13 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
 | `eco` | Battery envelope even on AC (15 W / 2.4 GHz) |
 | `perf` | Switch to performance mode (4.47 GHz / GPU unlocked) |
 | `material-refresh` | Re-sync kitty/btop/zed/prompt to current wallpaper colors |
+| `uu` | Full update: repos + AUR + Flatpak + orphan/cache cleanup |
+
+`uu` runs `arch-auto-update`, versioned in its own private repo
+(<https://github.com/ismail-bahloul/arch-auto-update>) and checked out at
+`~/DATA/05_Code/Projects/arch-auto-update`. Useful flags: `-c` preview the
+available updates, `-n` dry run, `--force` bypass the news guard once a
+manual-intervention announcement has been read.
 
 ## Vendored third-party widgets
 
