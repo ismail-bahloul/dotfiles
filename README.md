@@ -124,7 +124,8 @@ dotfiles/
 │   │   ├── kitty-material-you.py     # kitty colors ← wallpaper (Material You)
 │   │   ├── btop-material-you.py      # btop theme ← wallpaper (Material You)
 │   │   ├── zed-material-you.py       # Zed theme ← wallpaper (Material You)
-│   │   ├── material-you-prompt.py    # p10k prompt cache ← wallpaper (1x, not per prompt)
+│   │   ├── zen-material-you.py       # Zen theme ← wallpaper (restart Zen)
+│   │   ├── material-you-prompt.py    # p10k prompt + LS_COLORS ← wallpaper (1x, not per prompt)
 │   │   ├── kitty-material-you-hook.sh# run by kde-material-you-colors → delegates to material-you-refresh
 │   │   └── material-you-refresh      # manual re-sync (safety net)
 │   ├── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)

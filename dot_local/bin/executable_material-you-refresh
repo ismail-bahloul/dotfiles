@@ -4,10 +4,11 @@
 # run (crash, partial startup).
 set -e
 
-echo "==> Generating kitty + btop + zed + prompt with the current colors"
+echo "==> Generating kitty + btop + zed + zen + prompt with the current colors"
 python3 "$HOME/.local/bin/kitty-material-you.py"
 python3 "$HOME/.local/bin/btop-material-you.py"
 python3 "$HOME/.local/bin/zed-material-you.py"
+python3 "$HOME/.local/bin/zen-material-you.py"
 python3 "$HOME/.local/bin/material-you-prompt.py"
 
 echo "==> Reload kitty (open instances + reload)"
@@ -15,4 +16,13 @@ pkill -USR1 -x kitty 2>/dev/null || true
 kitten @ set-colors --all "$HOME/.config/kitty/theme-wallpaper.conf" 2>/dev/null || true
 
 echo "==> Prompt: cache re-read on next prompt"
-echo "OK — kitty/btop/zed/prompt resynchronized."
+echo "==> Zen: user.js + userChrome written (restart Zen to apply)"
+
+# user.js and userChrome.css are only read at startup: remind the user instead
+# of letting them wonder why a running Zen does not follow the wallpaper.
+if pgrep -x zen-bin >/dev/null 2>&1 && command -v notify-send >/dev/null 2>&1; then
+  notify-send -a "Material You" "Zen : relance-le pour les nouvelles couleurs" \
+    "user.js / userChrome.css ne sont lus qu'au démarrage."
+fi
+
+echo "OK — kitty/btop/zed/zen/prompt resynchronized."

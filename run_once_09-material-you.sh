@@ -11,6 +11,7 @@
 # Deploys:
 #   - dot_local/bin/kitty-material-you.py / btop-material-you.py / hook
 #   - dot_local/bin/zed-material-you.py  (Zed theme "Material You")
+#   - dot_local/bin/zen-material-you.py  (Zen accent pref, via the profile's user.js)
 #   - dot_config/kitty/kitty.conf        (includes theme-wallpaper.conf)
 #   - dot_config/btop/btop.conf          (color_theme = materialyou)
 #   - the _prompt_material block in ~/.zshrc  (already handled via dot_zshrc)
@@ -60,10 +61,11 @@ else
 fi
 
 # --- 3) generate kitty + btop + zed + prompt a first time --------------------
-log_info "Initial generation of kitty + btop + zed + prompt..."
+log_info "Initial generation of kitty + btop + zed + zen + prompt..."
 python3 "$HOME/.local/bin/kitty-material-you.py" || true
 python3 "$HOME/.local/bin/btop-material-you.py" || true
 python3 "$HOME/.local/bin/zed-material-you.py" || true
+python3 "$HOME/.local/bin/zen-material-you.py" || true
 python3 "$HOME/.local/bin/material-you-prompt.py" || true
 
 # --- 4) Zed: point settings.json at the "Material You" theme ------------------

@@ -11,7 +11,7 @@ is centralized in `material_you_lib.py` (a single source of truth).
 
 **Chain**: wallpaper changed → `kde-material-you-colors` daemon regenerates the
 Material You → `on_change_hook` (`kitty-material-you-hook.sh`) **delegates to
-`material-you-refresh`** (kitty + btop + Zed + prompt cache) → kitty reloads
+`material-you-refresh`** (kitty + btop + Zed + Zen + prompt cache) → kitty reloads
 (`pkill -USR1`).
 
 **kitty tab bar**: `powerline` style (set in `kitty.conf`); the generator
@@ -29,6 +29,39 @@ refreshed on every change. **No process launched on every prompt** (previously:
 (custom "Material You" theme, Ayu Dark structure + wallpaper colors). Zed watches
 this folder and **hot-reloads** — no need to restart the editor. The theme is
 selected via the `theme` key of `~/.config/zed/settings.json`.
+
+**Zen Browser**: `zen-material-you.py` writes, into the active profile:
+
+- `user.js`: `zen.theme.accent-color` (hex), `zen.theme.use-system-colors`, and
+  `toolkit.legacyUserProfileCustomizations.stylesheets` (off by default, even in
+  Zen, so `userChrome.css` would otherwise be ignored);
+- `chrome/zen-material-you.css` (`userChrome`): forces the surfaces (background,
+  toolbar, sidebar, URL bar, popups, selected tab) because Zen only mixes 20-30 %
+  of the accent over near-black and keeps fixed greys for the big areas;
+- `chrome/zen-material-you-content.css` (`userContent`): `about:newtab`,
+  `about:home`, `about:blank`;
+- `chrome/userChrome.css` / `userContent.css`: an `@import` of the two files above.
+
+> ⚠️ The chrome rules use `*`, not `:root`: when a workspace has a theme (Zen
+> stores `{type: gradient, opacity: 0.5}` per space), Zen sets
+> `--zen-primary-color` / `--zen-background-opacity` **inline on descendant
+> elements** (`#zen-browser-background`, the space element). An inline value on
+> an element wins over the inherited `:root` value, so `:root` was silently
+> ignored. The rules also force `--zen-background-opacity: 1`, which cancels the
+> workspace theme's 50 % wash.
+
+`user.js` and those stylesheets are read at startup → **restart Zen after a
+wallpaper change** (unlike Zed, which hot-reloads). The profile is found through
+`~/.config/zen/profiles.ini`, so nothing profile-specific is versioned.
+
+**Removing it** (back to stock Zen): `zen-material-you.py --remove`. It drops the
+`user.js` block, deletes the two generated stylesheets and removes their
+`@import`s (a `userChrome.css` / `userContent.css` with other rules is kept). The
+legacy pref stays `true` in `prefs.js`, which is harmless without the files.
+
+> ℹ️ Plain Firefox has no equivalent pref: theming it would require a
+> `userChrome.css` plus `toolkit.legacyUserProfileCustomizations.stylesheets=true`
+> (defaults to `false`, including in Zen). That is why Zen is the supported route.
 
 > ℹ️ `settings.json` **is not versioned**: Zed writes the agent's permissions
 > there dynamically (absolute paths, network hosts) → it would create noise and a
