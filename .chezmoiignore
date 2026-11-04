@@ -26,5 +26,8 @@ docs
 # Windows-side helpers (not deployed to ~/)
 win
 
+# Python bytecode caches (regenerated at runtime next to the scripts)
+**/__pycache__
+
 # Local secrets (API keys, tokens) — never versioned
 dot_config/zsh/secrets
