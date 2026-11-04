@@ -19,3 +19,13 @@
 [alias]
 	st = status
 	lg = log --oneline --graph --decorate
+	co = checkout
+	sw = switch
+	br = branch
+	ci = commit
+	ca = commit --amend --no-edit
+	psh = push
+	pl = pull --ff-only
+	df = diff
+	aa = add -A
+	last = log -1 HEAD --stat
