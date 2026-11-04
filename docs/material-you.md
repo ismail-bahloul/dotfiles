@@ -18,9 +18,12 @@ Material You → `on_change_hook` (`kitty-material-you-hook.sh`) **delegates to
 emits `active_tab_background` = accent and `inactive_tab_background` = an
 accent-tinted surface, so the bottom tabs follow the wallpaper as well.
 
-**p10k prompt**: `material-you-prompt.py` writes `~/.cache/material-you/prompt.zsh`
-(accent `~`/`❯`), which `.zshrc` "sources" in `precmd` → **no process launched on
-every prompt** (previously: 2 `awk` per prompt).
+**p10k prompt + `ls`**: `material-you-prompt.py` writes `~/.cache/material-you/prompt.zsh`
+(accent `~`/`❯` **and** `LS_COLORS` with truecolor values from the same palette),
+which `.zshrc` sources at startup and in `precmd` → the prompt, `ls` (via the
+`ls/la/l` aliases) and the zsh completion list all follow the wallpaper, and are
+refreshed on every change. **No process launched on every prompt** (previously:
+2 `awk` per prompt).
 
 **Zed**: `zed-material-you.py` writes `~/.config/zed/themes/materialyou.json`
 (custom "Material You" theme, Ayu Dark structure + wallpaper colors). Zed watches

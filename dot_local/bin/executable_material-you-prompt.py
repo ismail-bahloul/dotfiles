@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # material-you-prompt.py
 # Writes ~/.cache/material-you/prompt.zsh: the p10k prompt colors (the "~" and
-# the "❯") aligned with the Material You accent. The .zshrc simply "sources"
-# this file in precmd -> no process launched on every prompt.
+# the "❯") and LS_COLORS, all aligned with the Material You palette. The .zshrc
+# simply "sources" this file at startup and in precmd -> no process launched on
+# every prompt.
 import os
 import sys
 
@@ -11,9 +12,41 @@ import material_you_lib as my
 OUT = os.path.expanduser('~/.cache/material-you/prompt.zsh')
 
 
+def sgr(hexcol):
+    """'#rrggbb' -> truecolor SGR parameters (38;2;r;g;b)."""
+    return '38;2;%d;%d;%d' % (
+        int(hexcol[1:3], 16), int(hexcol[3:5], 16), int(hexcol[5:7], 16))
+
+
+def ls_colors(p):
+    """LS_COLORS derived from the palette (same colors as the prompt)."""
+    base, intense = p['base'], p['intense']
+    accent = sgr(base[1])    # directories: same accent as the p10k path
+    execu = sgr(base[2])
+    link = sgr(base[3])
+    device = sgr(base[4])
+    special = sgr(base[5])
+    media = sgr(base[6])
+    broken = sgr(intense[5])
+    entries = [
+        'rs=0', 'no=0',
+        'di=' + accent, 'ln=' + link, 'ex=' + execu,
+        'bd=' + device, 'cd=' + device, 'pi=' + special, 'so=' + special,
+        'or=' + broken, 'mi=' + broken, 'ow=' + execu, 'tw=' + execu,
+    ]
+    for pat in ('*.tar', '*.tgz', '*.tbz2', '*.txz', '*.tzst', '*.tar.*',
+                '*.zip', '*.7z', '*.rar', '*.gz', '*.bz2', '*.xz', '*.zst'):
+        entries.append(pat + '=' + device)
+    for pat in ('*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.svg',
+                '*.flac', '*.wav', '*.mp3', '*.ogg', '*.opus',
+                '*.mp4', '*.mkv', '*.webm'):
+        entries.append(pat + '=' + media)
+    return ':'.join(entries)
+
+
 def main():
     p = my.palette_or_die()
-    acc = p['base'][1]      # Color1 = accent
+    acc = p['base'][1]       # Color1 = accent
     acc_i = p['intense'][1]  # Color1Intense = light accent
     # quoted values: '#' otherwise interpreted as a comment in shell
     lines = [
@@ -25,10 +58,12 @@ def main():
         "POWERLEVEL9K_PROMPT_CHAR_OK_VICMD_FOREGROUND='%s'" % acc,
         "POWERLEVEL9K_PROMPT_CHAR_OK_VIVIS_FOREGROUND='%s'" % acc,
         "POWERLEVEL9K_PROMPT_CHAR_OK_VIOWR_FOREGROUND='%s'" % acc,
+        "LS_COLORS='%s'" % ls_colors(p),
+        'export LS_COLORS',
     ]
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, 'w').write('\n'.join(lines) + '\n')
-    print('prompt cache written. accent=%s' % acc)
+    print('prompt + LS_COLORS cache written. accent=%s' % acc)
     return 0
 
 
