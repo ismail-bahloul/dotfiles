@@ -29,9 +29,26 @@ fi
 autoload -Uz compinit
 compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump-${ZSH_VERSION}"
 
-# History: shared between shells, no duplicates, ignore noisy commands
+# Completion behaviour (previously oh-my-zsh/lib/completion.zsh)
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' menu select
+[[ -n $LS_COLORS ]] && zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zcompcache"
+
+# Shell behaviour: type a directory to cd, `#` comments at the prompt,
+# extended globbing, and Tab completion on aliases.
+setopt autocd interactive_comments extendedglob completealiases
+
+# History: shared between shells, no duplicates, ignore noisy commands.
+# HISTFILE/HISTSIZE/SAVEHIST used to come from oh-my-zsh's lib/history.zsh.
+# zsh's own defaults are HISTSIZE=30, SAVEHIST=0 and no HISTFILE, so without
+# these three lines nothing is loaded or persisted across sessions.
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=10000
 HISTORY_IGNORE="(&|[bf]g|c|clear|history|exit|q|pwd|* --help)"
-setopt inc_append_history share_history hist_ignore_dups
+setopt extended_history inc_append_history share_history hist_ignore_dups
 
 # Fish-like syntax highlighting + autosuggestions
 [[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] &&
@@ -49,6 +66,9 @@ fi
 # fzf: Ctrl+R (history), Ctrl+T (files), Alt+C (cd) + fuzzy completion
 [[ -r /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
 [[ -r /usr/share/fzf/completion.zsh ]] && source /usr/share/fzf/completion.zsh
+
+# zoxide: `z <dir>` jumps to visited dirs, `zi` picks with fzf
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
 
 # extract any archive (the one oh-my-zsh helper actually worth keeping)
 extract() {
@@ -78,19 +98,25 @@ extract() {
 export LESS_TERMCAP_md="$(tput bold 2>/dev/null; tput setaf 2 2>/dev/null)"
 export LESS_TERMCAP_me="$(tput sgr0 2>/dev/null)"
 
-# --- p10k prompt: ~ and ❯ follow the Material You accent of the wallpaper ---
-# The colors are computed once (material-you-prompt.py, triggered by
-# kde-material-you-colors) then cached: here we only "source" the
+# --- p10k prompt + ls colors: follow the Material You accent of the wallpaper ---
+# `material-you-prompt.py` (triggered by kde-material-you-colors) writes the p10k
+# colors AND LS_COLORS derived from the same palette. Here we only "source" the
 # file -> no process launched on every prompt.
 _prompt_material() {
   local cache="$HOME/.cache/material-you/prompt.zsh"
   [[ -f "$cache" ]] && source "$cache"
+  [[ -n $LS_COLORS ]] && zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 }
 _prompt_material
 [[ " ${precmd_functions[*]} " == *" _prompt_material "* ]] || precmd_functions+=(_prompt_material)
 
 alias ff='fastfetch'
 alias material-refresh='$HOME/.local/bin/material-you-refresh'
+
+# ls: colors come from LS_COLORS (Material You, refreshed with the wallpaper)
+alias ls='ls --color=auto'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
 
 # Source local secrets (API keys, tokens) — not versioned
 [[ -f ~/.config/zsh/secrets ]] && source ~/.config/zsh/secrets
