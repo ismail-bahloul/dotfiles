@@ -6,16 +6,24 @@
 #   source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 #
 # Functions:
-#   log_init [total]       — reset step counter (optional total for [step/N])
+#   log_init [total]       — reset the counters (optional total for [step/N])
 #   log_section title      — ━━━ title [1/N] ────────────────────
 #   log_pass  "message"    — ✔ message
-#   log_fail  "message"    — ✘ message (sets LOG_ERR=1)
-#   log_warn  "message"    — ⚠ message
+#   log_fail  "message"    — ✘ message (increments LOG_ERR)
+#   log_warn  "message"    — ! message (increments LOG_WARN)
 #   log_info  "message"    — → message
 #   log_skip  "message"    — ⋯ message (dimmed, already done)
 #   log_detail "message"   —   • message (dimmed sub-info)
 #   log_cmd   "command"    — $ command (highlighted command)
-#   log_summary            — show final ✔ / ✘ result line
+#   log_summary            — verdict: ✘ failures, else ! warnings, else
+#                            ⋯ LOG_UNVALIDATED, else ✔ all checks passed
+#
+# The glyphs are plain text (✔ ✘ ! → ⋯), never emoji: they keep the same
+# single-cell width and colour in every terminal and font.
+#
+# State the caller may set:
+#   LOG_UNVALIDATED=1      — nothing was checked, so the summary must not claim
+#                            "all checks passed" (e.g. install.sh update mode)
 # =============================================================================
 
 # ─── Colors ────────────────────────────────────────────────────────────────
@@ -33,7 +41,9 @@ CYAN='\033[0;36m'
 # ─── State ──────────────────────────────────────────────────────────────────
 LOG_STEP=0
 LOG_TOTAL=0
-LOG_ERR=0
+LOG_ERR=0         # failed checks (log_fail)
+LOG_WARN=0        # warnings (log_warn)
+LOG_UNVALIDATED=0 # 1 → the summary reports that nothing was validated
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -62,6 +72,8 @@ log_init() {
   LOG_TOTAL="${1:-0}"
   LOG_STEP=0
   LOG_ERR=0
+  LOG_WARN=0
+  LOG_UNVALIDATED=0
 }
 
 log_section() {
@@ -74,11 +86,11 @@ log_section() {
 
 log_pass() { echo -e "  ${GREEN}✔${RESET} $1"; }
 
-log_fail() { echo -e "  ${RED}✘${RESET} $1"; LOG_ERR=1; }
+log_fail() { LOG_ERR=$((LOG_ERR + 1)); echo -e "  ${RED}✘${RESET} $1"; }
 
 log_fatal() { echo -e "  ${RED}✘${RESET} ${BOLD}$1${RESET}"; exit 1; }
 
-log_warn() { echo -e "  ${YELLOW}⚠${RESET} $1"; }
+log_warn() { LOG_WARN=$((LOG_WARN + 1)); echo -e "  ${YELLOW}!${RESET} $1"; }
 
 log_info() { echo -e "  ${BLUE}→${RESET} $1"; }
 
@@ -92,10 +104,14 @@ log_summary() {
   echo ""
   _log_sep "Result" 0 0
   echo ""
-  if [ "$LOG_ERR" -eq 0 ]; then
-    echo -e "  ${GREEN}${BOLD}✔ ALL CHECKS PASSED${RESET}"
-  else
+  if [ "$LOG_ERR" -gt 0 ]; then
     echo -e "  ${RED}${BOLD}✘ ${LOG_ERR} CHECK(S) FAILED${RESET}"
+  elif [ "$LOG_WARN" -gt 0 ]; then
+    echo -e "  ${YELLOW}${BOLD}! PASSED WITH ${LOG_WARN} WARNING(S)${RESET}"
+  elif [ "$LOG_UNVALIDATED" -eq 1 ]; then
+    echo -e "  ${DIM}⋯ NOTHING VALIDATED${RESET}"
+  else
+    echo -e "  ${GREEN}${BOLD}✔ ALL CHECKS PASSED${RESET}"
   fi
   echo ""
 }

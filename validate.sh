@@ -9,12 +9,13 @@ if [ -f "$REPO_SCRIPT_DIR/lib/logging.sh" ]; then
   source "$REPO_SCRIPT_DIR/lib/logging.sh"
 else
   # Fallback: minimal logging
+  LOG_ERR=0 LOG_WARN=0 LOG_UNVALIDATED=0
   log_init() { :; }
   log_section() { echo ""; echo "─── $1 ───"; }
   log_pass() { echo "  ✔ $1"; }
-  log_fail() { echo "  ✘ $1"; }
+  log_fail() { LOG_ERR=$((LOG_ERR + 1)); echo "  ✘ $1"; }
   log_fatal() { echo "  ✘ $1"; exit 1; }
-  log_warn() { echo "  ⚠ $1"; }
+  log_warn() { LOG_WARN=$((LOG_WARN + 1)); echo "  ! $1"; }
   log_info() { echo "  → $1"; }
   log_skip() { echo "  ⋯ $1"; }
   log_detail() { echo "    • $1"; }
@@ -357,5 +358,7 @@ else
 fi
 
 # ─── Summary ────────────────────────────────────────────────────────────────
+# Warn-only runs still count as success: warnings are "look at this", not "this
+# is broken". Failures must reach the caller through the exit status.
 log_summary
-exit "$LOG_ERR"
+[ "$LOG_ERR" -eq 0 ] || exit 1

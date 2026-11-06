@@ -30,12 +30,13 @@ if [ -f "$SCRIPT_DIR/lib/logging.sh" ]; then
   source "$SCRIPT_DIR/lib/logging.sh"
 else
   # Fallback: minimal logging (e.g. when piped from a URL)
+  LOG_ERR=0 LOG_WARN=0 LOG_UNVALIDATED=0
   log_init() { :; }
   log_section() { echo ""; echo "─── $1 ───"; }
   log_pass() { echo "  ✔ $1"; }
-  log_fail() { echo "  ✘ $1"; }
+  log_fail() { LOG_ERR=$((LOG_ERR + 1)); echo "  ✘ $1"; }
   log_fatal() { echo "  ✘ $1"; exit 1; }
-  log_warn() { echo "  ⚠ $1"; }
+  log_warn() { LOG_WARN=$((LOG_WARN + 1)); echo "  ! $1"; }
   log_info() { echo "  → $1"; }
   log_skip() { echo "  ⋯ $1"; }
   log_detail() { echo "    • $1"; }
@@ -170,14 +171,24 @@ log_section "Validation"
 if [ "$INSTALL_TYPE" = "fresh" ] || $FORCE_VALIDATE; then
   log_info "Running post-install validation..."
   if [ -f "$SCRIPT_DIR/validate.sh" ]; then
-    bash "$SCRIPT_DIR/validate.sh"
+    # A failing validation must not abort the script (set -e): validate.sh has
+    # already printed its ✘ lines, and the summary below still has to run.
+    if ! bash "$SCRIPT_DIR/validate.sh"; then
+      log_fail "validation reported failures (see above)"
+    fi
   else
     log_warn "validate.sh not found next to install.sh — validation skipped"
   fi
 else
   log_skip "Validation skipped (run with --validate to force)"
   log_info "Restart your session to apply all changes"
+  # Nothing was checked: the summary must not claim "all checks passed".
+  LOG_UNVALIDATED=1
 fi
 
 # ─── Summary ────────────────────────────────────────────────────────────────
 log_summary
+
+# The summary is not an exit status: a ✘ verdict has to reach the caller (CI,
+# `install.sh && …`), otherwise a failed run looks successful.
+[ "$LOG_ERR" -eq 0 ] || exit 1
