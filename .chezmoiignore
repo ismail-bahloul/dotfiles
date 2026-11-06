@@ -7,6 +7,9 @@
 # Package registry: one <component>.{pacman,aur} per component, read by
 # .chezmoiscripts/run_once_01-packages.sh.tmpl (not deployed to ~/)
 packages.d
+
+# Opt-in application bundles (bricks/install), never installed by chezmoi
+bricks
 README.md
 LICENSE
 validate.sh

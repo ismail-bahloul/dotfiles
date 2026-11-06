@@ -63,12 +63,11 @@ previous behaviour: every component except `wine`.
 | `monitoring` | btop, nvtop, duf, fastfetch, plocate |
 | `gpu_nvidia` | NVIDIA driver stack (libva-nvidia-driver, opencl, vulkan layers) |
 | `hardware_amd` | iGPU Vulkan, amd-ucode, acpi_call, ryzenadj + ryzen_smu |
-| `audio_pro` | PipeWire/JACK, REAPER, lsp-plugins, AUR plugins, realtime group |
+| `audio_pro` | PipeWire/JACK stack, realtime group, rtirq, samba (winbind for Wine) |
 | `virtualization` | QEMU, libvirt, virt-manager, OVMF/swtpm |
 | `containers` | podman, distrobox |
 | `network_security` | ufw, proton-vpn-cli |
-| `apps` | firefox, zed, obsidian, bitwarden(+cli), localsend, vesktop, zapzap |
-| `creative` | blender, obs-studio, upscayl, shutter-encoder |
+| `apps` | firefox, zed, bitwarden(+cli), Material You theming packages |
 | `peripherals` | logiops + the MX Master 3S `logid` config |
 | `looking_glass` | Looking Glass host client (IVSHMEM) |
 | `wine` | wine-staging 9.21 standalone runner, winetricks, yabridge — **off by default** |
@@ -117,6 +116,29 @@ settings, boot tuning, fstab) and have no component to belong to.
 `wine = true` is still honoured as a legacy switch, equivalent to adding `wine`
 to the list.
 
+## Bricks
+
+Applications are not components. Everything that is an application rather than
+a dependency of a versioned config lives in `bricks/`, is **never** installed by
+`chezmoi apply`, and is installed by hand when wanted:
+
+```bash
+./bricks/install --list
+./bricks/install audio-apps
+./bricks/install creative misc-apps
+```
+
+| Brick | What it brings |
+|---|---|
+| `audio-apps` | REAPER, reapack, sws, qpwgraph, easyeffects, lsp-plugins + AUR plugin bundles |
+| `creative` | Blender, OBS Studio, upscayl, shutter-encoder |
+| `misc-apps` | obsidian, localsend, vesktop, zapzap, pcloud-drive |
+
+Nothing is uninstalled automatically (`sudo pacman -Rns <packages>`). Keeping
+them out of `packages.d/` means a brick can never slow down or break a
+bootstrap, and the registry stays a statement about the machine, not about your
+app list of the month. See [`bricks/README.md`](bricks/README.md).
+
 ## Structure
 
 ```
@@ -144,8 +166,13 @@ dotfiles/
 │   └── component-guard                # no-op a script when its component is off
 ├── packages.d/                       # package registry: one file per component
 │   ├── base.pacman                   # always installed
-│   ├── audio_pro.pacman              # e.g. pro-audio chain (also audio_pro.aur)
+│   ├── audio_pro.pacman              # e.g. audio stack (also audio_pro.aur)
 │   └── <component>.{pacman,aur}      # installed when listed in `components`
+├── bricks/                           # opt-in application bundles (never installed by chezmoi)
+│   ├── install                       # ./bricks/install audio-apps
+│   ├── audio-apps.{pacman,aur}       # REAPER, plugins
+│   ├── creative.{pacman,aur}         # Blender, OBS, upscayl, shutter-encoder
+│   └── misc-apps.{pacman,aur}        # obsidian, localsend, vesktop…
 ├── dot_zshrc                         # zsh: p10k + plugins with guards (no distro config package)
 ├── dot_p10k.zsh                      # p10k prompt config (regenerate: `p10k configure` + `chezmoi add`)
 ├── dot_gitconfig                     # git config: credential helpers + aliases (identity = untracked ~/.config/git/local)
@@ -239,7 +266,7 @@ missing hash entry or a hand-edited `/etc` file shows up as a failure.
 - **Shell**: zsh + Powerlevel10k
 - **DE**: KDE Plasma 6 (Wayland)
 - **GPU**: NVIDIA RTX 3070 + AMD Vega (VFIO passthrough for VM)
-- **Audio**: Pipewire (JACK) + REAPER + yabridge (Windows VST bridge)
+- **Audio**: Pipewire (JACK) + realtime privileges, yabridge (Windows VST bridge); REAPER and plugins are an opt-in brick
 - **Virtualization**: QEMU + virt-manager + distrobox
 - **Fan control**: omenctl (EC setpoints, tuned curve, safety contract)
 - **Power mgmt**: omenctl profile (auto/quiet/eco/perf, AC/battery) + RyzenAdj + NVIDIA

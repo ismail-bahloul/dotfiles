@@ -10,6 +10,9 @@
 # Turning a component off stops its packages from being installed on the next
 # apply. It does NOT uninstall what is already there — see README, "Components".
 #
+# Applications (REAPER, Blender, chat clients…) are NOT components: they are
+# opt-in bricks, installed by hand with ./bricks/install. See bricks/README.md.
+#
 # No prompt is used on purpose: `chezmoi init --apply` runs from install.sh and
 # must never block waiting for an answer. (An interactive selector is the next
 # step; it fills this same list.)
@@ -25,12 +28,11 @@
         "monitoring",        # btop, nvtop, duf, fastfetch, plocate
         "gpu_nvidia",        # NVIDIA driver stack (dGPU)
         "hardware_amd",      # iGPU Vulkan, ucode, ryzenadj/SMU
-        "audio_pro",         # PipeWire/JACK pro-audio chain + VST plugins
+        "audio_pro",         # PipeWire/JACK stack + realtime group
         "virtualization",    # QEMU/libvirt (host side of the VM)
         "containers",        # podman, distrobox
         "network_security",  # ufw, Proton VPN
-        "apps",              # firefox, zed, obsidian, bitwarden, localsend…
-        "creative",          # blender, OBS, upscayl, shutter-encoder
+        "apps",              # firefox, zed, bitwarden(+cli), theming packages
         "peripherals",       # logiops (MX Master 3S)
         "looking_glass",     # Looking Glass host client (IVSHMEM)
     ]

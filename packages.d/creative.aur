@@ -1,7 +1,0 @@
-# =============================================================================
-# packages.d/creative.aur — AUR side of the creative component.
-# Installed by run_once_01-packages.sh.tmpl (via paru)
-# =============================================================================
-
-upscayl-bin
-shutter-encoder-bin

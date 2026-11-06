@@ -127,6 +127,36 @@ for f in packages.d/*.pacman; do
   fi
 done
 
+# ─── Bricks: opt-in bundles, outside the component registry ─────────────────
+# A brick is a pair of <name>.pacman/.aur lists installed on demand by
+# bricks/install. It must stay discoverable (documented) and clean (no dupes).
+log_section "Bricks"
+
+for f in bricks/*.pacman bricks/*.aur; do
+  [ -f "$f" ] || continue
+  dups=$(grep -v '^[[:space:]]*#' "$f" | awk 'NF {print $1}' | sort | uniq -d)
+  if [ -z "$dups" ]; then
+    log_pass "$f: no duplicate entry"
+  else
+    log_fail "$f: duplicate entry: $(printf '%s ' $dups)"
+  fi
+done
+
+for f in bricks/*.pacman; do
+  brick=$(basename "$f" .pacman)
+  if grep -qF "\`$brick\`" bricks/README.md; then
+    log_pass "$brick documented"
+  else
+    log_fail "$brick is not documented in bricks/README.md"
+  fi
+done
+
+if [ -x bricks/install ] && bash -n bricks/install; then
+  log_pass "bricks/install"
+else
+  log_fail "bricks/install is missing, not executable, or invalid"
+fi
+
 # ─── Contract: optional scripts are gated on their component ────────────────
 # The components switch must gate *behaviour*, not only packages. Each script
 # below belongs to a component and must call the shared component-guard
