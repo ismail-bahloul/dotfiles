@@ -105,6 +105,13 @@ translucent window; the opaque ones do not change. (The "lag" we had attributed 
 the global blur came in fact from `colorPowerTradeoff=PreferAccuracy` on DP-2, a
 per-screen KWin setting.)
 
+The **engine** itself is not pinned by the dotfiles: which blur runs is a
+one-click choice in *System Settings → Desktop Effects*. What matters is that
+`better-blur-dx` and the stock blur are **never enabled together** (two blurs =
+double blur) — so on a fresh install: enable `better-blur-dx`, disable the stock
+one. The DX parameters themselves are imposed by `run_once_08` (they are what the
+theming depends on, and they are not reachable by hand).
+
 ## Two fragile points (worth knowing)
 
 1. **The `kde-material-you-colors` daemon** autostarts at login (reads

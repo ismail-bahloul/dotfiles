@@ -283,7 +283,7 @@ done < <(find . -name "*.json" -not -path "./.git/*" -print0)
 # ─── KDE config ─────────────────────────────────────────────────────────────
 log_section "KDE config"
 
-for f in dot_config/kglobalshortcutsrc dot_config/kwinrulesrc dot_config/kxkbrc; do
+for f in dot_config/kwinrulesrc dot_config/kxkbrc; do
   base=$(basename "$f")
   if [ -f "$f" ]; then
     log_pass "$base"

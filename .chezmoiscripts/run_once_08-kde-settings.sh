@@ -16,8 +16,11 @@
 #   - appletsrc   -> create_ prefix (deployed only on a fresh install)
 #
 # Files versioned because stable (edited via the UI, re-committed after
-# changes): kwinrulesrc, kxkbrc, kglobalshortcutsrc, katerc, dolphinrc,
-#                konsolerc
+# changes): kwinrulesrc, kxkbrc, katerc, dolphinrc, konsolerc
+#
+# Not versioned: kglobalshortcutsrc. Plasma owns it and rewrites it whenever a
+# shortcut changes, so a copy in the repo only drifts (it had to be resynced by
+# hand twice); shortcuts are edited in System Settings.
 # =============================================================================
 set -e
 
@@ -30,9 +33,12 @@ if ! command -v kwriteconfig6 &>/dev/null; then
 fi
 
 # --- KWin: effect plugins ---------------------------------------------------
+# The blur *engine* is deliberately not pinned: better-blur-dx and the stock
+# blur must never run together (two blurs = double blur), but which one you keep
+# is a one-click choice in System Settings → Desktop Effects, not something the
+# dotfiles should decide for you. What *is* imposed is the DX engine's parameters
+# below — that is what the theming depends on, and it is not reachable by hand.
 log_info "KWin: effect plugins..."
-kwriteconfig6 --file kwinrc --group Plugins --key better_blur_dxEnabled true
-kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false
 kwriteconfig6 --file kwinrc --group Plugins --key translucencyEnabled true
 kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true
 kwriteconfig6 --file kwinrc --group Plugins --key kwin4_effect_geometry_changeEnabled true

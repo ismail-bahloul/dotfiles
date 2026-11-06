@@ -73,7 +73,7 @@ dotfiles/
 │   ├── btop/btop.conf                 # system monitor (color_theme = materialyou)
 │   ├── pipewire/pipewire.conf.d/      # PipeWire: global quantum + proprietary RME mode (TuxMix)
 │   ├── wireplumber/wireplumber.conf.d/# WirePlumber: per-interface RME (CC) rules + Ryzen onboard
-│   └── *.rc                           # KDE config STABLE only (shortcuts via UI, kwin rules, kate/dolphin/konsole)
+│   └── *.rc                           # KDE config STABLE only (kwin rules, kate/dolphin/konsole)
 ├── dot_local/
 │   ├── bin/                          # commands on PATH
 │   │   ├── limine-boot-win           # one-time boot to Windows

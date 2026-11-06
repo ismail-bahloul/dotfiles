@@ -6,13 +6,16 @@ everything here is interesting to read — this is the stuff that bites.
 ## Versioned vs non-versioned config
 
 Only the **stable** KDE `.rc` files are versioned (`kwinrulesrc`, `kxkbrc`,
-`kglobalshortcutsrc`, `katerc`, `dolphinrc`, `konsolerc`). After a change made
-through the UI, run another `chezmoi add`.
+`katerc`, `dolphinrc`, `konsolerc`). After a change made through the UI, run
+another `chezmoi add`.
 
-`kdeglobals` and `kwinrc` are **deliberately not versioned**: they are rewritten
-at runtime (by Plasma, and by `kde-material-you-colors` for the colors), so
-versioning them fights the daemon and a `chezmoi apply` would overwrite your
-settings. `run_once_08` declaratively imposes the keys that matter instead.
+`kdeglobals`, `kwinrc` **and `kglobalshortcutsrc`** are **deliberately not
+versioned**: they are rewritten at runtime (by Plasma, and by
+`kde-material-you-colors` for the colors), so versioning them fights the owner
+and a `chezmoi apply` would overwrite your settings. `run_once_08` declaratively
+imposes the keys that matter instead. `kglobalshortcutsrc` used to be versioned
+and had to be resynced by hand twice — shortcuts are now edited in System
+Settings and left to Plasma.
 
 `~/.config/zsh/secrets` is listed in `.chezmoiignore`; it must never be
 committed.
