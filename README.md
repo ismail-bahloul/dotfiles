@@ -83,15 +83,35 @@ previous behaviour: every component except `wine`.
 chezmoi apply
 ```
 
-Two caveats, deliberately stated:
+One caveat, deliberately stated:
 
 - **A disabled component is not uninstalled.** It stops being installed on the
   next apply; packages already present stay. Remove them with `pacman -Rns` by
   hand (same rule as `wine` since the start).
-- **This gates packages only, for now.** The `run_once_*` scripts are still
-  unconditional: dropping `looking_glass` stops the client package but
-  `run_once_07-looking-glass.sh` still sets up the IVSHMEM device. Gating the
-  scripts (with a teardown branch) is the next step.
+
+A component switch also gates the setup scripts that belong to it: those scripts
+call `component-guard` (`.chezmoitemplates/component-guard`) right after
+sourcing the logging library, which renders a `log_skip` + `exit 0` when the
+component is absent. Dropping `virtualization` therefore skips `run_once_05`
+(VFIO) and `run_once_06` (libvirt).
+
+`looking_glass` goes one step further and **tears its own configuration down**:
+its script is `run_onchange_` (not `run_once_`, which keys its state on every
+content hash ever seen and would skip a second disable after a re-enable), and
+the guard also calls `looking-glass-teardown`, which removes the tmpfiles/sysctl
+drop-ins and `/dev/shm/looking-glass`. Packages are still never removed. Others
+only gate; adding a teardown is a per-component decision (pass its template name
+to the guard).
+
+| Gated script | Component |
+|---|---|
+| `run_once_02-wine-staging.sh.tmpl` | `wine` |
+| `run_once_05-vfio-setup.sh.tmpl` | `virtualization` |
+| `run_once_06-libvirt-setup.sh.tmpl` | `virtualization` |
+| `run_onchange_07-looking-glass.sh.tmpl` | `looking_glass` (with teardown) |
+
+The rest of the `run_once_*` scripts are machine-wide (packages, omenctl, KDE
+settings, boot tuning, fstab) and have no component to belong to.
 
 `wine = true` is still honoured as a legacy switch, equivalent to adding `wine`
 to the list.
@@ -103,17 +123,23 @@ dotfiles/
 ├── install.sh                        # bootstrap (paru + chezmoi + apply, --dry-run)
 ├── validate.sh                       # post-install verification script
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
-├── run_once_01-packages.sh.tmpl      # base + enabled components (packages.d/)
-├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: "wine" component)
-├── run_onchange_03-omenctl.sh        # omenctl (fans + power profiles), pinned ref
-├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
-├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
-├── run_once_06-libvirt-setup.sh      # libvirt services + groups
-├── run_once_07-looking-glass.sh      # Looking Glass shared memory
-├── run_once_08-kde-settings.sh       # KDE settings enforced via kwriteconfig6
-├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
-├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
-├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
+├── .chezmoiscripts/                   # scripts run by chezmoi, never deployed
+│   ├── run_once_01-packages.sh.tmpl      # base + enabled components (packages.d/)
+│   ├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: "wine" component)
+│   ├── run_onchange_03-omenctl.sh        # omenctl (fans + power profiles), pinned ref
+│   ├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
+│   ├── run_once_05-vfio-setup.sh.tmpl    # GPU passthrough (VFIO) — virtualization
+│   ├── run_once_06-libvirt-setup.sh.tmpl # libvirt services + groups — virtualization
+│   ├── run_onchange_07-looking-glass.sh.tmpl # Looking Glass shared memory — looking_glass
+│   ├── run_once_08-kde-settings.sh       # KDE settings enforced via kwriteconfig6
+│   ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
+│   ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
+│   └── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
+├── lib/                               # shell libraries, sourced by the scripts above
+│   ├── logging.sh                     # log_* helpers (+ summary counters)
+│   └── system.sh                      # install_system_file: etc/… → /etc/…
+├── .chezmoitemplates/
+│   └── component-guard                # no-op a script when its component is off
 ├── packages.d/                       # package registry: one file per component
 │   ├── base.pacman                   # always installed
 │   ├── audio_pro.pacman              # e.g. pro-audio chain (also audio_pro.aur)
@@ -121,17 +147,14 @@ dotfiles/
 ├── dot_zshrc                         # zsh: p10k + plugins with guards (no distro config package)
 ├── dot_p10k.zsh                      # p10k prompt config (regenerate: `p10k configure` + `chezmoi add`)
 ├── dot_gitconfig                     # git config: credential helpers + aliases (identity = untracked ~/.config/git/local)
-├── etc/                              # system files (units, udev, initcpio) installed by run_onchange_03/run_once_04/11
+├── etc/                              # system files (units, udev, initcpio, tmpfiles, sysctl, logid)
 │   ├── initcpio/install/no-nouveau    # mkinitcpio hook: drop nouveau + GSP fw
 │   └── mkinitcpio.conf.d/20-no-nouveau.conf
 ├── docs/                              # why the config here is the way it is
 │   ├── README.md                             # index
 │   ├── boot-tuning.md                        # initramfs slimming + UEFI boot entries
 │   ├── material-you.md                       # wallpaper-driven theming + KWin rules
-│   ├── notes.md                              # versioned-vs-not, audio, SSH keys
-│   └── legacy/remove-nbfc.sh                 # retired one-shot: nbfc fork removal (manual)
-├── Desktop/
-│   └── omenctl.desktop                # desktop shortcut (runs `omenctl tui`)
+│   └── notes.md                              # versioned-vs-not, audio, SSH keys
 ├── dot_config/create_*                # created only if absent (Plasma/Kate own them afterwards)
 │   └── plasma-*.appletsrc             # panel/widgets layout (volatile → apply once)
 ├── dot_config/
@@ -142,7 +165,7 @@ dotfiles/
 │   ├── wireplumber/wireplumber.conf.d/# WirePlumber: per-interface RME (CC) rules + Ryzen onboard
 │   └── *.rc                           # KDE config STABLE only (shortcuts via UI, kwin rules, kate/dolphin/konsole)
 ├── dot_local/
-│   ├── bin/                          # boot scripts, helpers, Material You
+│   ├── bin/                          # commands on PATH
 │   │   ├── limine-boot-win           # one-time boot to Windows
 │   │   ├── limine-boot-vfio          # one-time boot to VFIO kernel
 │   │   ├── limine-boot-linux         # restore boot to Linux
@@ -152,14 +175,15 @@ dotfiles/
 │   │   ├── umount-shared             # unmount SHARED before rebooting to Windows
 │   │   ├── deploy-plugins            # deploy Linux audio plugins (VST3/LV2/CLAP)
 │   │   ├── .add-vfio-entry           # (internal) adds the VFIO entry to limine.conf
-│   │   ├── material_you_lib.py       # (internal, non-executable) shared Material You palette
-│   │   ├── kitty-material-you.py     # kitty colors ← wallpaper (Material You)
-│   │   ├── btop-material-you.py      # btop theme ← wallpaper (Material You)
-│   │   ├── zed-material-you.py       # Zed theme ← wallpaper (Material You)
-│   │   ├── zen-material-you.py       # Zen theme ← wallpaper (restart Zen)
-│   │   ├── material-you-prompt.py    # p10k prompt + LS_COLORS ← wallpaper (1x, not per prompt)
 │   │   ├── kitty-material-you-hook.sh# run by kde-material-you-colors → delegates to material-you-refresh
 │   │   └── material-you-refresh      # manual re-sync (safety net)
+│   ├── lib/material-you/             # generators (internal, NOT on PATH)
+│   │   ├── material_you_lib.py       # shared palette parser (single source of truth)
+│   │   ├── kitty.py                  # kitty colors ← wallpaper
+│   │   ├── btop.py                   # btop theme ← wallpaper
+│   │   ├── zed.py                    # Zed theme ← wallpaper (hot-reloads)
+│   │   ├── zen.py                    # Zen accent + userChrome (restart Zen)
+│   │   └── prompt.py                 # p10k prompt + LS_COLORS (1x, not per prompt)
 │   ├── share/plasma/plasmoids/       # KDE widgets (thermal monitor, salat)
 │   ├── share/applications/omenctl.desktop  # application-menu entry for the TUI
 │   └── share/icons/hicolor/scalable/apps/omenctl.svg  # launcher icon
@@ -167,16 +191,19 @@ dotfiles/
 
 ## System files (`etc/`)
 
-Files that live outside `~` (mkinitcpio hooks, systemd units, udev rules) are
-versioned under `etc/` with the **same path they have on the machine**, so the
+Files that live outside `~` (mkinitcpio hooks, systemd units, udev rules,
+tmpfiles/sysctl drop-ins, the logid config) are versioned under `etc/` with the
+**same path they have on the machine**, so the
 repo tree mirrors `/etc`. They are not deployed by chezmoi itself (`etc` is in
-`.chezmoiignore`); a `run_once_` script installs them:
+`.chezmoiignore`); a script in `.chezmoiscripts/` installs them:
 
+- `run_once_01-packages.sh.tmpl` — `/etc/logid.cfg` (the `peripherals` block)
 - `run_once_04-omenctl.sh.tmpl` — the omenctl profile/watch units and udev rules
+- `run_onchange_07-looking-glass.sh.tmpl` — the IVSHMEM tmpfiles entry and the hugepages sysctl
 - `run_once_11-boot-tuning.sh.tmpl` — the initramfs hooks and the VFIO drop-in
 
-Both use `install_system_file` (`.lib_system.sh`), which copies a file only if it
-differs from the installed one. Both are **templates** whose header carries an
+They all use `install_system_file` (`lib/system.sh`), which copies a file only if
+it differs from the installed one. They are **templates** whose header carries an
 `etc-hash:` line: a hash of the `etc/` files the script installs. chezmoi
 re-runs a `run_once_` script only when its own content changes, so without that
 line editing a unit would never be redeployed. **When you add a file under
@@ -231,19 +258,18 @@ bash script (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
   `omenctl fan cpu|gpu|all 0-100|auto`, `omenctl tui`,
   `omenctl curve cpu|gpu`, `omenctl start|stop`.
 - Rollback: `sudo systemctl stop omenctl` writes `255` to both setpoints and
-  hands the fans back to the EC's own (louder) curve. The dotfiles no longer
-  install or start `nbfc`; a leftover `nbfc_service` from an older install is
-  left disabled and unused. The one-time removal script is retired in
-  `docs/legacy/remove-nbfc.sh` (run it by hand only on a machine that still has
-  the old nbfc-linux fork installed).
-- Desktop: `Desktop/omenctl.desktop` and the application-menu entry call
+  hands the fans back to the EC's own (louder) curve. The dotfiles never install
+  or start `nbfc`; omenctl is the only fan/power stack they set up.
+- Desktop: the application-menu entry
+  (`dot_local/share/applications/omenctl.desktop`) calls
   `/usr/local/bin/omenctl-tui`, a symlink created by `run_onchange_03` to the
   chezmoi-deployed `~/.local/bin/omenctl-tui`. The icon is
   `dot_local/share/icons/hicolor/scalable/apps/omenctl.svg` (installed as
   `~/.local/share/icons/hicolor/scalable/apps/omenctl.svg`). The wrapper runs
   `sudo -n omenctl tui` (falling back to an interactive prompt) and
   `Terminal=true` opens it in the default terminal. If KDE asks to trust the
-  desktop file, right-click it and choose “Allow launching”.
+  desktop file, right-click it and choose “Allow launching”. Pin it to the
+  desktop from the application menu if you want a shortcut there.
 
 ## Aliases
 

@@ -21,9 +21,9 @@
 # =============================================================================
 set -e
 
-# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
+# Logging helpers: lib/logging.sh ships in the chezmoi source dir and is always
 # present when run_once scripts run under chezmoi, so no fallback is needed.
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
 if ! command -v kwriteconfig6 &>/dev/null; then
   log_fatal "kwriteconfig6 not found (KDE Plasma required)"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# btop-material-you.py
+# btop.py
 # Aligns the btop theme with the Material You colors of the wallpaper, via the
 # Konsole colorscheme (same colors as kitty/Konsole).
 # Writes ~/.config/btop/themes/materialyou.theme

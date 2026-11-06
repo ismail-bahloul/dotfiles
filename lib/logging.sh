@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# .lib_logging.sh — shared logging library for dotfiles scripts
+# lib/logging.sh — shared logging library for dotfiles scripts
 #
 # Usage:
-#   source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+#   source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 #
 # Functions:
 #   log_init [total]       — reset step counter (optional total for [step/N])

@@ -12,15 +12,19 @@
 # listed in `.components`. A config that has no `components` key at all (one
 # written before the registry existed) keeps the old behaviour: every known
 # component except wine, which stays explicitly opt-in.
+#
+# The etc-hash below covers the system file this script installs (the logid
+# config), so chezmoi re-runs it when that file changes.
+# etc-hash: {{ range list "etc/logid.cfg" }}{{ include . | sha256sum | trunc 8 }}{{ end }}
 # =============================================================================
 {{ $hasComponents := hasKey . "components" }}
 {{ $components := list }}{{ if $hasComponents }}{{ $components = index . "components" }}{{ end }}
 {{ if and (hasKey . "wine") (index . "wine") }}{{ $components = append $components "wine" }}{{ end }}
 set -e
 
-# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
+# Logging helpers: lib/logging.sh ships in the chezmoi source dir and is always
 # present when run_once scripts run under chezmoi, so no fallback is needed.
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
 # Ensure paru is available
 if ! command -v paru &>/dev/null; then
@@ -28,6 +32,7 @@ if ! command -v paru &>/dev/null; then
 fi
 
 SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
+source "$SCRIPT_DIR/lib/system.sh"
 PKG_DIR="$SCRIPT_DIR/packages.d"
 
 # Components whose packages to install: base + the enabled ones.
@@ -115,35 +120,11 @@ sudo usermod -aG wheel "$USER"
 # --- Logitech mouse (MX Master 3S) ------------------------------------------
 if command -v logid &>/dev/null; then
   log_info "Configuring Logitech MX Master 3S..."
-  sudo tee /etc/logid.cfg > /dev/null << 'EOF'
-devices: (
-{
-    name: "MX Master 3S";
-    smartshift: { on: true; threshold: 30; };
-    hiresscroll: { hires: false; invert: false; target: false; };
-    dpi: 1000;
-    buttons: (
-        {
-            cid: 0xc4;
-            action = {
-                type: "Gestures";
-                gestures: (
-                    { direction: "None"; mode: "OnRelease"; action = { type: "Keypress"; keys: ["KEY_PLAYPAUSE"]; }; },
-                    { direction: "Up"; mode: "OnInterval"; interval: 50; action = { type: "Keypress"; keys: ["KEY_VOLUMEUP"]; }; },
-                    { direction: "Down"; mode: "OnInterval"; interval: 50; action = { type: "Keypress"; keys: ["KEY_VOLUMEDOWN"]; }; },
-                    { direction: "Right"; mode: "OnRelease"; action = { type: "Keypress"; keys: ["KEY_NEXTSONG"]; }; },
-                    { direction: "Left"; mode: "OnRelease"; action = { type: "Keypress"; keys: ["KEY_PREVIOUSSONG"]; }; }
-                );
-            };
-        },
-        {
-            cid: 0xc3;
-            action = { type: "Keypress"; keys: ["KEY_LEFTMETA", "KEY_Z"]; };
-        }
-    );
-}
-);
-EOF
+  # /etc/logid.cfg is versioned under etc/ (the repo mirrors /), so validate.sh
+  # compares it with the installed copy.
+  if install_system_file etc/logid.cfg; then
+    sudo systemctl restart logid.service 2>/dev/null || true
+  fi
   sudo systemctl enable --now logid.service 2>/dev/null || true
 fi
 {{ end -}}

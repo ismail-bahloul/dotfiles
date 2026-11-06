@@ -25,9 +25,9 @@ cleanup() {
 trap cleanup EXIT
 
 # ─── Load logging library (local clone, else fall back) ─────────────────────
-if [ -f "$SCRIPT_DIR/.lib_logging.sh" ]; then
-  # shellcheck source=.lib_logging.sh
-  source "$SCRIPT_DIR/.lib_logging.sh"
+if [ -f "$SCRIPT_DIR/lib/logging.sh" ]; then
+  # shellcheck source=lib/logging.sh
+  source "$SCRIPT_DIR/lib/logging.sh"
 else
   # Fallback: minimal logging (e.g. when piped from a URL)
   log_init() { :; }

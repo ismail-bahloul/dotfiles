@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# .lib_system.sh — install versioned system files (etc/…) for run_once scripts
+# lib/system.sh — install versioned system files (etc/…) for run_once scripts
 #
-# Usage (after sourcing .lib_logging.sh):
-#   source "$SCRIPT_DIR/.lib_system.sh"
+# Usage (after sourcing lib/logging.sh):
+#   source "$SCRIPT_DIR/lib/system.sh"
 #   install_system_file etc/udev/rules.d/99-foo.rules   # -> /etc/udev/rules.d/…
 #
 # The path under the source dir is the path under `/`, so the repo tree mirrors

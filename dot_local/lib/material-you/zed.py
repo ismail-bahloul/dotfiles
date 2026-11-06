@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# zed-material-you.py
+# zed.py
 # Generates ~/.config/zed/themes/materialyou.json: a "Material You" Zed theme
 # derived from the Konsole colorscheme (same palette as kitty/btop), starting from
 # the complete structure of the Ayu Dark theme (base) to guarantee a valid theme.

@@ -1,18 +1,20 @@
 # .chezmoiignore — files in the source dir that chezmoi should NOT deploy.
 # chezmoi deploys every entry of the source dir (the dot_ prefix only renames
 # it to a leading dot), so anything that must stay repo-only is listed below.
-
+# Scripts in .chezmoiscripts/ are special-cased by chezmoi: never deployed,
+# no entry needed here.
 
 # Package registry: one <component>.{pacman,aur} per component, read by
-# run_once_01-packages.sh.tmpl (not deployed to ~/)
+# .chezmoiscripts/run_once_01-packages.sh.tmpl (not deployed to ~/)
 packages.d
 README.md
 LICENSE
 validate.sh
 install.sh
 test.sh
-.lib_logging.sh
-.lib_system.sh
+
+# Shell libraries sourced by install.sh / validate.sh / .chezmoiscripts/*
+lib
 
 # System files installed by run_onchange_03, run_once_04 and run_once_11 (not deployed to ~/)
 etc

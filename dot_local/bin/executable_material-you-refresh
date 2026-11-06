@@ -5,11 +5,13 @@
 set -e
 
 echo "==> Generating kitty + btop + zed + zen + prompt with the current colors"
-python3 "$HOME/.local/bin/kitty-material-you.py"
-python3 "$HOME/.local/bin/btop-material-you.py"
-python3 "$HOME/.local/bin/zed-material-you.py"
-python3 "$HOME/.local/bin/zen-material-you.py"
-python3 "$HOME/.local/bin/material-you-prompt.py"
+# Generators are internal: they live in ~/.local/lib/material-you/, not on PATH.
+MY_LIB="$HOME/.local/lib/material-you"
+python3 "$MY_LIB/kitty.py"
+python3 "$MY_LIB/btop.py"
+python3 "$MY_LIB/zed.py"
+python3 "$MY_LIB/zen.py"
+python3 "$MY_LIB/prompt.py"
 
 echo "==> Reload kitty (open instances + reload)"
 pkill -USR1 -x kitty 2>/dev/null || true

@@ -4,9 +4,9 @@ set -e
 
 # ─── Locate repo + load logging library from the local clone ─────────────────
 REPO_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-if [ -f "$REPO_SCRIPT_DIR/.lib_logging.sh" ]; then
-  # shellcheck source=.lib_logging.sh
-  source "$REPO_SCRIPT_DIR/.lib_logging.sh"
+if [ -f "$REPO_SCRIPT_DIR/lib/logging.sh" ]; then
+  # shellcheck source=lib/logging.sh
+  source "$REPO_SCRIPT_DIR/lib/logging.sh"
 else
   # Fallback: minimal logging
   log_init() { :; }
@@ -62,6 +62,25 @@ fi
 if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.data.wine == true' >/dev/null 2>&1; then
   components+=(wine)
 fi
+
+component_enabled() {
+  local want="$1" c
+  for c in "${components[@]}"; do
+    [ "$c" = "$want" ] && return 0
+  done
+  return 1
+}
+
+# Which component owns an etc/ file? Read it from the script whose etc-hash
+# lists the path, so the mapping lives in exactly one place (the script).
+etc_owner() {
+  local rel="$1" f
+  for f in "$SCRIPT_DIR"/.chezmoiscripts/run_*; do
+    grep -qF "\"$rel\"" "$f" 2>/dev/null || continue
+    sed -n 's/.*component-guard" (dict "name" "\([^"]*\)".*/\1/p' "$f" | head -1
+    return 0
+  done
+}
 
 for comp in "${components[@]}"; do
   missing=()
@@ -123,19 +142,35 @@ for svc in nvidia-powerd.service nvidia-suspend.service nvidia-resume.service; d
     log_pass "$svc skipped (no NVIDIA)"
   fi
 done
-for svc in virtqemud.socket virtnetworkd.socket; do
-  if systemctl is-active "$svc" &>/dev/null; then
-    log_pass "$svc active"
-  else
-    log_fail "$svc not active"
-  fi
-done
+if component_enabled virtualization; then
+  for svc in virtqemud.socket virtnetworkd.socket; do
+    if systemctl is-active "$svc" &>/dev/null; then
+      log_pass "$svc active"
+    else
+      log_fail "$svc not active"
+    fi
+  done
+else
+  log_skip "libvirt sockets (virtualization disabled)"
+fi
 
 # ─── System files (etc/) ────────────────────────────────────────────────────
 # Every file versioned under etc/ must be installed at the same path, unchanged.
 log_section "System files"
 
 while IFS= read -r rel; do
+  owner=$(etc_owner "$rel")
+  if [ -n "$owner" ] && ! component_enabled "$owner"; then
+    # The script that installs this file is gated on a disabled component, so
+    # the file is expected to be absent (teardown) - not a failure either way,
+    # but a leftover means the teardown did not run.
+    if [ -f "/$rel" ]; then
+      log_warn "/$rel still present although '$owner' is disabled (teardown not run?)"
+    else
+      log_skip "/$rel torn down ('$owner' disabled)"
+    fi
+    continue
+  fi
   if [ ! -f "/$rel" ]; then
     log_fail "/$rel missing (run_once script not applied?)"
   elif cmp -s "$SCRIPT_DIR/$rel" "/$rel"; then
@@ -148,15 +183,19 @@ done < <(cd "$SCRIPT_DIR" && find etc -type f | sort)
 # ─── VFIO ───────────────────────────────────────────────────────────────────
 log_section "VFIO"
 
-if grep -q "vfio" /etc/mkinitcpio.conf 2>/dev/null; then
-  log_pass "VFIO modules in mkinitcpio"
+if component_enabled virtualization; then
+  if grep -q "vfio" /etc/mkinitcpio.conf 2>/dev/null; then
+    log_pass "VFIO modules in mkinitcpio"
+  else
+    log_fail "VFIO modules missing"
+  fi
+  if [ ! -f /etc/cmdline.d/vfio.conf ]; then
+    log_pass "VFIO cmdline via Limine entry (no /etc/cmdline.d)"
+  else
+    log_fail "Stale /etc/cmdline.d/vfio.conf present - ids should live in the Limine VFIO entry only"
+  fi
 else
-  log_fail "VFIO modules missing"
-fi
-if [ ! -f /etc/cmdline.d/vfio.conf ]; then
-  log_pass "VFIO cmdline via Limine entry (no /etc/cmdline.d)"
-else
-  log_fail "Stale /etc/cmdline.d/vfio.conf present - ids should live in the Limine VFIO entry only"
+  log_skip "VFIO (virtualization disabled)"
 fi
 
 # ─── Power profile ──────────────────────────────────────────────────────────
@@ -229,18 +268,22 @@ fi
 # ─── Looking Glass ──────────────────────────────────────────────────────────
 log_section "Looking Glass"
 
-LG=/dev/shm/looking-glass
-if [ -f "$LG" ]; then
-  SIZE=$(du -h "$LG" | awk '{print $1}')
-  log_pass "Shared memory ($SIZE)"
+if component_enabled looking_glass; then
+  LG=/dev/shm/looking-glass
+  if [ -f "$LG" ]; then
+    SIZE=$(du -h "$LG" | awk '{print $1}')
+    log_pass "Shared memory ($SIZE)"
+  else
+    log_fail "Shared memory not found"
+  fi
+  HP=$(cat /proc/sys/vm/nr_hugepages 2>/dev/null)
+  if [ "$HP" -ge 64 ] 2>/dev/null; then
+    log_pass "Hugepages: $HP"
+  else
+    log_fail "Hugepages: $HP (expected 64+)"
+  fi
 else
-  log_fail "Shared memory not found"
-fi
-HP=$(cat /proc/sys/vm/nr_hugepages 2>/dev/null)
-if [ "$HP" -ge 64 ] 2>/dev/null; then
-  log_pass "Hugepages: $HP"
-else
-  log_fail "Hugepages: $HP (expected 64+)"
+  log_skip "Looking Glass (looking_glass disabled)"
 fi
 
 # ─── KDE config ─────────────────────────────────────────────────────────────

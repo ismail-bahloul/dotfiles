@@ -18,19 +18,19 @@ Material You → `on_change_hook` (`kitty-material-you-hook.sh`) **delegates to
 emits `active_tab_background` = accent and `inactive_tab_background` = an
 accent-tinted surface, so the bottom tabs follow the wallpaper as well.
 
-**p10k prompt + `ls`**: `material-you-prompt.py` writes `~/.cache/material-you/prompt.zsh`
+**p10k prompt + `ls`**: `prompt.py` writes `~/.cache/material-you/prompt.zsh`
 (accent `~`/`❯` **and** `LS_COLORS` with truecolor values from the same palette),
 which `.zshrc` sources at startup and in `precmd` → the prompt, `ls` (via the
 `ls/la/l` aliases) and the zsh completion list all follow the wallpaper, and are
 refreshed on every change. **No process launched on every prompt** (previously:
 2 `awk` per prompt).
 
-**Zed**: `zed-material-you.py` writes `~/.config/zed/themes/materialyou.json`
+**Zed**: `zed.py` writes `~/.config/zed/themes/materialyou.json`
 (custom "Material You" theme, Ayu Dark structure + wallpaper colors). Zed watches
 this folder and **hot-reloads** — no need to restart the editor. The theme is
 selected via the `theme` key of `~/.config/zed/settings.json`.
 
-**Zen Browser**: `zen-material-you.py` writes, into the active profile:
+**Zen Browser**: `zen.py` writes, into the active profile:
 
 - `user.js`: `zen.theme.accent-color` (hex), `zen.theme.use-system-colors`, and
   `toolkit.legacyUserProfileCustomizations.stylesheets` (off by default, even in
@@ -54,7 +54,7 @@ selected via the `theme` key of `~/.config/zed/settings.json`.
 wallpaper change** (unlike Zed, which hot-reloads). The profile is found through
 `~/.config/zen/profiles.ini`, so nothing profile-specific is versioned.
 
-**Removing it** (back to stock Zen): `zen-material-you.py --remove`. It drops the
+**Removing it** (back to stock Zen): `zen.py --remove`. It drops the
 `user.js` block, deletes the two generated stylesheets and removes their
 `@import`s (a `userChrome.css` / `userContent.css` with other rules is kept). The
 legacy pref stays `true` in `prefs.js`, which is harmless without the files.
@@ -118,6 +118,8 @@ per-screen KWin setting.)
 
 ---
 
-This module is entirely separate in the repo: scripts in `dot_local/bin/`,
+This module is entirely separate in the repo: generators in
+`dot_local/lib/material-you/` (internal, not on PATH), the two commands
+(`material-you-refresh`, `kitty-material-you-hook.sh`) in `dot_local/bin/`,
 configs in `dot_config/{kitty,btop}/`, and `run_once_09` which sets the
 `on_change_hook` key + Zed's `theme` key (both idempotent).

@@ -1,14 +1,19 @@
 #!/bin/bash
 # =============================================================================
-# run_once_06-libvirt-setup.sh
+# run_once_06-libvirt-setup.sh.tmpl
 # Run once by chezmoi (re-runs if this file changes)
 # Post-install configuration for libvirt / QEMU
+#
+# OPTIONAL — no-op unless the "virtualization" component is enabled (see the
+# component-guard call below).
 # =============================================================================
 set -e
 
-# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
+# Logging helpers: lib/logging.sh ships in the chezmoi source dir and is always
 # present when run_once scripts run under chezmoi, so no fallback is needed.
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
+
+{{ template "component-guard" (dict "name" "virtualization" "data" .) }}
 
 log_info "Enabling libvirt services..."
 

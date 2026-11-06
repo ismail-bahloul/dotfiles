@@ -1,0 +1,25 @@
+# looking-glass-teardown — undo the configuration installed by
+# run_onchange_07-looking-glass.sh.tmpl when the "looking_glass" component is
+# disabled. Called from component-guard; see that template for the contract.
+#
+# What it does NOT do: uninstall the `looking-glass` package, touch VFIO, or
+# remove the user from the kvm group. Those belong to the package and to the
+# `virtualization` component, and this repo never uninstalls anything.
+
+if [ -f /etc/tmpfiles.d/looking-glass.conf ]; then
+  sudo rm -f /etc/tmpfiles.d/looking-glass.conf
+  log_detail "removed /etc/tmpfiles.d/looking-glass.conf"
+fi
+if [ -f /etc/sysctl.d/10-looking-glass.conf ]; then
+  sudo rm -f /etc/sysctl.d/10-looking-glass.conf
+  log_detail "removed /etc/sysctl.d/10-looking-glass.conf"
+fi
+sudo rm -f /dev/shm/looking-glass
+
+# Only lower hugepages if the value is still the one this component set.
+if [ "$(sysctl -n vm.nr_hugepages 2>/dev/null || echo 0)" = "64" ]; then
+  sudo sysctl -w vm.nr_hugepages=0 >/dev/null
+  log_detail "vm.nr_hugepages -> 0"
+fi
+
+log_pass "Looking Glass configuration removed (package left installed)."

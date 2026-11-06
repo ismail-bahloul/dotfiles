@@ -10,7 +10,7 @@ set -e
 # ─── Load logging library ──────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # The lib ships with the repo, so it is always present here.
-source "$SCRIPT_DIR/.lib_logging.sh"
+source "$SCRIPT_DIR/lib/logging.sh"
 
 cd "$SCRIPT_DIR"
 log_init
@@ -32,7 +32,7 @@ fi
 # ─── Files ──────────────────────────────────────────────────────────────────
 log_section "Files"
 
-for f in install.sh validate.sh run_once_*.sh* run_onchange_*.sh* dot_local/bin/*; do
+for f in install.sh validate.sh .chezmoiscripts/run_once_*.sh* .chezmoiscripts/run_onchange_*.sh* dot_local/bin/*; do
   if [ -f "$f" ]; then
     log_pass "$f"
   else
@@ -54,14 +54,14 @@ done
 log_section "etc/ coverage"
 
 while IFS= read -r -d '' f; do
-  if grep -qhF "\"$f\"" run_* 2>/dev/null; then
+  if grep -qhF "\"$f\"" .chezmoiscripts/run_* 2>/dev/null; then
     log_pass "$f"
   else
     log_fail "$f is not listed in any etc-hash (never redeployed)"
   fi
 done < <(find etc -type f -print0 | sort -z)
 
-for f in run_*.tmpl; do
+for f in .chezmoiscripts/run_*.tmpl; do
   [ -f "$f" ] || continue
   if grep -q "install_system_file" "$f" && ! grep -q "^# etc-hash:" "$f"; then
     log_fail "$f installs etc/ files but carries no etc-hash line"
@@ -75,20 +75,21 @@ done
 # mentions that no longer exists, is documentation drift.
 log_section "Scripts documented"
 
-for f in run_*.sh*; do
+for f in .chezmoiscripts/run_*.sh*; do
   [ -f "$f" ] || continue
-  if grep -qF "$f" README.md; then
-    log_pass "$f documented"
+  base=$(basename "$f")
+  if grep -qF "$base" README.md; then
+    log_pass "$base documented"
   else
-    log_fail "$f is not mentioned in README.md"
+    log_fail "$base is not mentioned in README.md"
   fi
 done
 
 while IFS= read -r r; do
-  if [ -f "$r" ]; then
+  if [ -f ".chezmoiscripts/$r" ]; then
     log_pass "README mentions $r"
   else
-    log_fail "README mentions $r, but the file does not exist"
+    log_fail "README mentions $r, but .chezmoiscripts/$r does not exist"
   fi
 done < <(grep -oE 'run_(once|onchange)_[0-9]+-[A-Za-z0-9._-]+\.sh(\.tmpl)?' README.md | sort -u)
 
@@ -126,12 +127,40 @@ for f in packages.d/*.pacman; do
   fi
 done
 
+# ─── Contract: optional scripts are gated on their component ────────────────
+# The components switch must gate *behaviour*, not only packages. Each script
+# below belongs to a component and must call the shared component-guard
+# template with that component's name, so disabling the component turns the
+# script into a no-op instead of silently configuring the machine.
+log_section "Component gating"
+
+while read -r script comp; do
+  [ -n "$script" ] || continue
+  f=".chezmoiscripts/$script"
+  if [ ! -f "$f" ]; then
+    log_fail "$script missing (declared as gated on '$comp')"
+  elif ! grep -q '"component-guard"' "$f"; then
+    log_fail "$script does not use component-guard (runs even when '$comp' is off)"
+  elif ! grep -q "component-guard\" (dict \"name\" \"$comp\"" "$f"; then
+    log_fail "$script guards a component other than '$comp'"
+  elif [ ! -f "packages.d/$comp.pacman" ] && [ ! -f "packages.d/$comp.aur" ]; then
+    log_fail "$script guards on '$comp', which is not in packages.d/"
+  else
+    log_pass "$script gated on '$comp'"
+  fi
+done <<'EOF'
+run_once_02-wine-staging.sh.tmpl     wine
+run_once_05-vfio-setup.sh.tmpl       virtualization
+run_once_06-libvirt-setup.sh.tmpl    virtualization
+run_onchange_07-looking-glass.sh.tmpl looking_glass
+EOF
+
 # ─── Contract: top-level entries are deployed or explicitly ignored ──────────
 log_section "chezmoi scope"
 
 for entry in * .[!.]*; do
   case "$entry" in
-    dot_*|run_*|Desktop|.git|.gitattributes|.gitignore|.chezmoi*) continue ;;
+    dot_*|.git|.gitattributes|.gitignore|.chezmoi*) continue ;;
   esac
   [ -e "$entry" ] || continue
   if grep -qxF "$entry" .chezmoiignore; then
@@ -144,7 +173,7 @@ done
 # ─── Shell syntax ───────────────────────────────────────────────────────────
 log_section "Shell syntax"
 
-for f in install.sh validate.sh run_once_*.sh* run_onchange_*.sh*; do
+for f in install.sh validate.sh .chezmoiscripts/run_once_*.sh* .chezmoiscripts/run_onchange_*.sh*; do
   # .tmpl scripts carry a chezmoi hash line: render them before the syntax check
   case "$f" in
     *.tmpl) check() { ( set -o pipefail; chezmoi -S "$PWD" execute-template < "$f" | bash -n ); } ;;

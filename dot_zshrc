@@ -99,7 +99,7 @@ export LESS_TERMCAP_md="$(tput bold 2>/dev/null; tput setaf 2 2>/dev/null)"
 export LESS_TERMCAP_me="$(tput sgr0 2>/dev/null)"
 
 # --- p10k prompt + ls colors: follow the Material You accent of the wallpaper ---
-# `material-you-prompt.py` (triggered by kde-material-you-colors) writes the p10k
+# `prompt.py` (triggered by kde-material-you-colors) writes the p10k
 # colors AND LS_COLORS derived from the same palette. Here we only "source" the
 # file -> no process launched on every prompt.
 _prompt_material() {

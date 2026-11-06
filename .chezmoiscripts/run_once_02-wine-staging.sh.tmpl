@@ -6,22 +6,20 @@
 # No system packages — fully portable, multiple runners can coexist.
 # Idempotent: safe to re-run, skips if already set up.
 #
-# OPTIONAL — disabled unless "wine" is listed in the chezmoi data `components`
+# OPTIONAL — no-op unless "wine" is listed in the chezmoi data `components`
 # array (~/.config/chezmoi/chezmoi.toml, [data] section). The legacy `wine =
-# true` switch is still honoured. The wine stack (runner, winetricks, yabridge)
-# is the only thing this repo installs for Windows VSTs; everything else works
-# without it.
+# true` switch is still honoured (component-guard handles both). The wine stack
+# (runner, winetricks, yabridge) is the only thing this repo installs for
+# Windows VSTs; everything else works without it.
 # =============================================================================
-{{ $components := list }}{{ if hasKey . "components" }}{{ $components = index . "components" }}{{ end }}
-{{ $wine := has "wine" $components }}
-{{ if and (hasKey . "wine") (index . "wine") }}{{ $wine = true }}{{ end }}
 set -euo pipefail
 
-# Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
+# Logging helpers: lib/logging.sh ships in the chezmoi source dir and is always
 # present when run_once scripts run under chezmoi, so no fallback is needed.
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
-{{ if $wine }}
+{{ template "component-guard" (dict "name" "wine" "data" .) }}
+
 WINE_VERSION="9.21-1"
 WINE_PKG="wine-staging-${WINE_VERSION}-x86_64.pkg.tar.zst"
 ALA_URL="https://archive.archlinux.org/packages/w/wine-staging/${WINE_PKG}"
@@ -154,6 +152,3 @@ else
 fi
 
 log_pass "Wine setup complete."
-{{ else }}
-log_skip "wine disabled (add \"wine\" to components in ~/.config/chezmoi/chezmoi.toml, [data])"
-{{ end }}

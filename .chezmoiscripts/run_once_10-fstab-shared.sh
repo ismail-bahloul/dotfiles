@@ -18,7 +18,7 @@
 # =============================================================================
 set -e
 
-source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/.lib_logging.sh"
+source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
 FSTAB="/etc/fstab"
 MP="$HOME/SHARED"
