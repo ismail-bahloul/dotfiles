@@ -15,8 +15,9 @@ non-obvious choices: [`docs/`](docs/).
 ## Install
 
 ```bash
-# bootstrap: clone + install
-mkdir -p ~/dotfiles && git clone https://github.com/ismail-bahloul/dotfiles.git ~/dotfiles
+# bootstrap: clone + install (re-runnable: pulls if the clone is already there)
+[ -d ~/dotfiles/.git ] || git clone https://github.com/ismail-bahloul/dotfiles.git ~/dotfiles
+git -C ~/dotfiles pull --ff-only
 ~/dotfiles/install.sh
 
 # afterwards: update
