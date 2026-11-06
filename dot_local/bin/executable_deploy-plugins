@@ -309,7 +309,7 @@ deploy_plugin_dir() {
 
     if ! $has_bins; then
         # If nothing was deployed at all, report it
-        echo -e "${YELLOW}  ⚠ $plugin_name: no recognized format (ignored)${NC}"
+        echo -e "${YELLOW}  ! $plugin_name: no recognized format (ignored)${NC}"
     fi
 }
 
@@ -361,7 +361,7 @@ deploy_bridged() {
         echo -e "${YELLOW}  No bridged plugin found.${NC}"
     fi
 
-    echo -e "\n${YELLOW}  ⚠  Don't forget to configure yabridge:"
+    echo -e "\n${YELLOW}  !  Don't forget to configure yabridge:"
     echo -e "      yabridgectl add \"$bridged_vst3\""
     echo -e "      yabridgectl sync${NC}"
 }
@@ -407,7 +407,7 @@ print_summary() {
     echo -e "  BIN  → $BIN_DIR   ($COUNT_BIN deployed)"
 
         if [ "$MODE" = "symlink" ]; then
-            echo -e "\n${YELLOW}⚠  Symbolic links — do not move/delete the folder"
+            echo -e "\n${YELLOW}!  Symbolic links — do not move/delete the folder"
             echo -e "   Audio_Plugins/ after deployment.${NC}"
         fi
 }

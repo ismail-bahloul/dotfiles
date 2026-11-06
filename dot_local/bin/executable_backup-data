@@ -27,7 +27,7 @@ log_section() {
 log_info()   { echo -e "  ${BLUE}→${RESET} $1"; }
 log_pass()   { echo -e "  ${GREEN}✔${RESET} $1"; }
 log_fail()   { echo -e "  ${RED}✘${RESET} $1"; }
-log_warn()   { echo -e "  ${YELLOW}⚠${RESET} $1"; }
+log_warn()   { echo -e "  ${YELLOW}!${RESET} $1"; }
 log_detail() { echo -e "  ${DIM}  • $1${RESET}"; }
 
 # ─── Variables ───────────────────────────────────────────────────────────────
