@@ -15,7 +15,7 @@ fi
 
 # --- zsh stack: p10k + plugins (self-contained) ------------------------------
 # Replaces `source /usr/share/cachyos-zsh-config/cachyos-config.zsh`. That file
-# ships in a CachyOS package we do not manage (not in packages.pacman) and
+# ships in a CachyOS package we do not manage (not in packages.d/base.pacman) and
 # depends on 11 packages (oh-my-zsh-git, vim + vim-runtime, powerline-fonts...)
 # for ~100 lines of config. Everything we actually use is below, each source
 # guarded, so a missing package can never break the shell again.

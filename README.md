@@ -41,30 +41,60 @@ mv ~/.local/share/chezmoi ~/.local/share/chezmoi.bak
 ln -s ~/DATA/05_Code/Projects/dotfiles ~/.local/share/chezmoi
 ```
 
-## Optional components
+## Components
 
-A few pieces are opt-in through chezmoi data, so a machine does not install what
-it does not use. `chezmoi init` seeds `~/.config/chezmoi/chezmoi.toml` with the
-keys at their defaults; change the key there and re-apply. (No prompt: `chezmoi
-init --apply` runs from `install.sh` and must not block.)
+What a machine installs is driven by the `components` list in
+`~/.config/chezmoi/chezmoi.toml`. Each entry is a file in `packages.d/`:
+`packages.d/<name>.pacman` (always present, possibly empty when the component's
+packages are installed by its own script) and optionally
+`packages.d/<name>.aur`. Adding a component to the list, or removing one, is the
+whole switch.
 
-| Key | Default | What it enables |
-|---|---|---|
-| `wine` | `false` | the wine-staging 9.21 standalone runner (`run_once_02-wine-staging.sh.tmpl`), plus `winetricks`, `yabridge` and `yabridgectl` — the Windows-VST bridge |
+`chezmoi init` seeds the file at its defaults (everything below enabled except
+`wine`); change the list there and re-apply. (No prompt: `chezmoi init --apply`
+runs from `install.sh` and must not block.) A config that has **no**
+`components` key at all — written before the registry existed — keeps the
+previous behaviour: every component except `wine`.
+
+| Component | What it brings |
+|---|---|
+| `base` | always installed, not a switch: git, python, rsync, ripgrep, snapper, fwupd, openssh… |
+| `shell` | zsh + Powerlevel10k + autosuggestions/syntax-highlighting/zoxide |
+| `monitoring` | btop, nvtop, duf, fastfetch, plocate |
+| `gpu_nvidia` | NVIDIA driver stack (libva-nvidia-driver, opencl, vulkan layers) |
+| `hardware_amd` | iGPU Vulkan, amd-ucode, acpi_call, ryzenadj + ryzen_smu |
+| `audio_pro` | PipeWire/JACK, REAPER, lsp-plugins, AUR plugins, realtime group |
+| `virtualization` | QEMU, libvirt, virt-manager, OVMF/swtpm |
+| `containers` | podman, distrobox |
+| `network_security` | ufw, proton-vpn-cli |
+| `apps` | firefox, zed, obsidian, bitwarden(+cli), localsend, vesktop, zapzap |
+| `creative` | blender, obs-studio, upscayl, shutter-encoder |
+| `peripherals` | logiops + the MX Master 3S `logid` config |
+| `looking_glass` | Looking Glass host client (IVSHMEM) |
+| `wine` | wine-staging 9.21 standalone runner, winetricks, yabridge — **off by default** |
 
 ```toml
 # ~/.config/chezmoi/chezmoi.toml
 [data]
-    wine = true
+    components = ["shell", "monitoring", "audio_pro", "apps"]
 ```
 
 ```bash
 chezmoi apply
 ```
 
-Turning it off does **not** uninstall an existing runner — it only stops the
-`run_once_02` script from installing one. Remove `~/.local/share/wine-runners/`
-and the `/usr/local/bin/wine*` symlinks by hand if you want it gone.
+Two caveats, deliberately stated:
+
+- **A disabled component is not uninstalled.** It stops being installed on the
+  next apply; packages already present stay. Remove them with `pacman -Rns` by
+  hand (same rule as `wine` since the start).
+- **This gates packages only, for now.** The `run_once_*` scripts are still
+  unconditional: dropping `looking_glass` stops the client package but
+  `run_once_07-looking-glass.sh` still sets up the IVSHMEM device. Gating the
+  scripts (with a teardown branch) is the next step.
+
+`wine = true` is still honoured as a legacy switch, equivalent to adding `wine`
+to the list.
 
 ## Structure
 
@@ -73,8 +103,8 @@ dotfiles/
 ├── install.sh                        # bootstrap (paru + chezmoi + apply, --dry-run)
 ├── validate.sh                       # post-install verification script
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
-├── run_once_01-packages.sh           # pacman + AUR packages
-├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: `wine = true` in chezmoi data)
+├── run_once_01-packages.sh.tmpl      # base + enabled components (packages.d/)
+├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: "wine" component)
 ├── run_onchange_03-omenctl.sh        # omenctl (fans + power profiles), pinned ref
 ├── run_once_04-omenctl.sh.tmpl       # omenctl units + udev rules
 ├── run_once_05-vfio-setup.sh         # GPU passthrough (VFIO)
@@ -84,8 +114,10 @@ dotfiles/
 ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
 ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
 ├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
-├── packages.pacman                   # official repo packages
-├── packages.aur                      # AUR packages
+├── packages.d/                       # package registry: one file per component
+│   ├── base.pacman                   # always installed
+│   ├── audio_pro.pacman              # e.g. pro-audio chain (also audio_pro.aur)
+│   └── <component>.{pacman,aur}      # installed when listed in `components`
 ├── dot_zshrc                         # zsh: p10k + plugins with guards (no distro config package)
 ├── dot_p10k.zsh                      # p10k prompt config (regenerate: `p10k configure` + `chezmoi add`)
 ├── dot_gitconfig                     # git config: credential helpers + aliases (identity = untracked ~/.config/git/local)

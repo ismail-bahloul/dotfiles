@@ -1,0 +1,14 @@
+# =============================================================================
+# packages.d/shell.pacman — the zsh stack used by dot_zshrc and dot_p10k.zsh.
+# Component: shell
+# Installed by run_once_01-packages.sh.tmpl
+# =============================================================================
+
+zsh
+zsh-theme-powerlevel10k         # prompt engine (~/.p10k.zsh holds the config)
+zsh-autosuggestions
+zsh-syntax-highlighting
+zsh-history-substring-search
+zsh-completions
+zoxide                          # `z <dir>` jumps to visited directories
+pkgfile                         # "command not found" handler (needs pkgfile --update)

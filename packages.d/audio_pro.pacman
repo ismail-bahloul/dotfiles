@@ -1,0 +1,23 @@
+# =============================================================================
+# packages.d/audio_pro.pacman — PipeWire/JACK pro-audio chain.
+# Component: audio_pro (REAPER + plugins + realtime privileges). Dropping the
+# component also skips the `realtime` group in run_once_01.
+# Installed by run_once_01-packages.sh.tmpl
+# =============================================================================
+
+# --- PipeWire JACK interface (replaces jack2, see run_once_01) ---------------
+pipewire-jack                   # JACK interface over pipewire
+lib32-pipewire-jack             # 32-bit layer for yabridge (32-bit VST)
+
+# --- Pro Audio ---------------------------------------------------------------
+reaper
+reapack
+sws
+qpwgraph
+easyeffects
+realtime-privileges
+rtirq
+lsp-plugins                     # CLAP + VST3 + LV2 (meta-package)
+
+# --- Wine support ------------------------------------------------------------
+samba                           # winbind (ntlm_auth) for Wine - required by some VST plugins

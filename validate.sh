@@ -37,24 +37,48 @@ for s in limine-boot-win limine-boot-vfio limine-boot-linux backup-data omenctl 
 done
 
 # ─── Packages ───────────────────────────────────────────────────────────────
+# The expected set is base + the enabled components, read from the same chezmoi
+# data run_once_01 renders. Fall back to every component in packages.d/ when
+# chezmoi is unavailable (bare clone, partial machine).
 log_section "Packages"
 
-if [ -f "$SCRIPT_DIR/packages.pacman" ]; then
-  MISSING=0
-  while IFS= read -r pkg; do
-    [ -z "$pkg" ] && continue
-    if ! pacman -Q "$pkg" &>/dev/null; then log_fail "$pkg (pacman)"; MISSING=1; fi
-  done < <(grep -v '^\s*#' "$SCRIPT_DIR/packages.pacman" | awk '{print $1}')
-  if [ "$MISSING" -eq 0 ]; then log_pass "All pacman packages installed"; fi
+components=()
+data_json=$(chezmoi data --format json 2>/dev/null || true)
+if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.data | has("components")' >/dev/null 2>&1; then
+  mapfile -t components < <(
+    printf '%s' "$data_json" | jq -r '.data.components[]?' | awk '$0 != "base" && !seen[$0]++'
+  )
+  components=(base "${components[@]}")
+else
+  # No `components` key: same fallback as run_once_01, i.e. every known
+  # component except wine (opt-in only).
+  components=(base)
+  for f in "$SCRIPT_DIR"/packages.d/*.pacman; do
+    comp=$(basename "$f" .pacman)
+    if [ "$comp" != "base" ] && [ "$comp" != "wine" ]; then components+=("$comp"); fi
+  done
 fi
-if [ -f "$SCRIPT_DIR/packages.aur" ]; then
-  MISSING_AUR=0
-  while IFS= read -r pkg; do
-    [ -z "$pkg" ] && continue
-    if ! pacman -Q "$pkg" &>/dev/null; then log_fail "$pkg (AUR)"; MISSING_AUR=1; fi
-  done < <(grep -v '^\s*#' "$SCRIPT_DIR/packages.aur" | awk '{print $1}')
-  if [ "$MISSING_AUR" -eq 0 ]; then log_pass "All AUR packages installed"; fi
+# The legacy switch applies to both paths.
+if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.data.wine == true' >/dev/null 2>&1; then
+  components+=(wine)
 fi
+
+for comp in "${components[@]}"; do
+  missing=()
+  for ext in pacman aur; do
+    f="$SCRIPT_DIR/packages.d/$comp.$ext"
+    [ -f "$f" ] || continue
+    while IFS= read -r pkg; do
+      [ -z "$pkg" ] && continue
+      if ! pacman -Q "$pkg" &>/dev/null; then missing+=("$pkg ($ext)"); fi
+    done < <(grep -v '^\s*#' "$f" | awk 'NF {print $1}')
+  done
+  if [ "${#missing[@]}" -eq 0 ]; then
+    log_pass "$comp"
+  else
+    log_fail "$comp: missing ${missing[*]}"
+  fi
+done
 
 # ─── Services ───────────────────────────────────────────────────────────────
 log_section "Services"

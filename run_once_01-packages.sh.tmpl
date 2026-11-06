@@ -1,8 +1,21 @@
 #!/bin/bash
 # =============================================================================
-# run_once_01-packages.sh
-# Run once by chezmoi (re-runs if this file changes)
+# run_once_01-packages.sh.tmpl
+# Run once by chezmoi, and re-run whenever the rendered content changes — i.e.
+# whenever the `components` list in the chezmoi data changes.
+#
+# Packages come from packages.d/<component>.{pacman,aur}. One rule:
+#   - every component owns a packages.d/<component>.pacman (possibly with no
+#     package at all, when its packages are installed by its own script);
+#   - <component>.aur is optional.
+# `base` is always installed; the other components are installed only when
+# listed in `.components`. A config that has no `components` key at all (one
+# written before the registry existed) keeps the old behaviour: every known
+# component except wine, which stays explicitly opt-in.
 # =============================================================================
+{{ $hasComponents := hasKey . "components" }}
+{{ $components := list }}{{ if $hasComponents }}{{ $components = index . "components" }}{{ end }}
+{{ if and (hasKey . "wine") (index . "wine") }}{{ $components = append $components "wine" }}{{ end }}
 set -e
 
 # Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
@@ -15,8 +28,25 @@ if ! command -v paru &>/dev/null; then
 fi
 
 SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
-PACMAN_LIST="$SCRIPT_DIR/packages.pacman"
-AUR_LIST="$SCRIPT_DIR/packages.aur"
+PKG_DIR="$SCRIPT_DIR/packages.d"
+
+# Components whose packages to install: base + the enabled ones.
+CONFIGURED_COMPONENTS=({{ range $components }}"{{ . }}" {{ end }})
+if {{ if $hasComponents }}true{{ else }}false{{ end }}; then
+  COMPONENTS=(base "${CONFIGURED_COMPONENTS[@]}")
+else
+  # No `components` key: enumerate the registry (minus wine, still opt-in).
+  COMPONENTS=(base)
+  for f in "$PKG_DIR"/*.pacman; do
+    comp="${f##*/}"; comp="${comp%.pacman}"
+    if [ "$comp" != "base" ] && [ "$comp" != "wine" ]; then
+      COMPONENTS+=("$comp")
+    fi
+  done
+  {{ if has "wine" $components }}
+  COMPONENTS+=(wine)
+  {{ end }}
+fi
 
 # Ensure passwordless sudo for the wheel group. This is deliberate and
 # load-bearing: chezmoi runs every run_once_* script non-interactively, so a
@@ -33,30 +63,55 @@ parse_list() {
   grep -v '^\s*#' "$1" | grep -v '^\s*$' | awk '{print $1}'
 }
 
-# --- Replace jack2 with pipewire-jack ----------------------------------------
- if pacman -Q jack2 &>/dev/null; then
-   log_info "jack2 detected, replacing with pipewire-jack..."
-   sudo pacman -Rdd --noconfirm jack2
- fi
+# Concatenate every enabled component's list for one package manager, keeping
+# the first occurrence of a package (the same package may be listed twice when
+# a component depends on another).
+collect() {
+  local comp f
+  for comp in "${COMPONENTS[@]}"; do
+    f="$PKG_DIR/$comp.$1"
+    if [ -f "$f" ]; then
+      parse_list "$f" || true
+    fi
+  done | awk 'NF && !seen[$0]++'
+}
 
- # --- Official packages -------------------------------------------------------
- log_info "Installing pacman packages..."
- mapfile -t pacman_pkgs < <(parse_list "$PACMAN_LIST")
- 
- sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
+# A name in `components` that owns no file is a typo, not an empty component.
+for comp in "${COMPONENTS[@]}"; do
+  if [ ! -f "$PKG_DIR/$comp.pacman" ] && [ ! -f "$PKG_DIR/$comp.aur" ]; then
+    log_warn "unknown component '$comp' (no packages.d/$comp.pacman) — ignored"
+  fi
+done
+
+# --- Replace jack2 with pipewire-jack ----------------------------------------
+if pacman -Q jack2 &>/dev/null; then
+  log_info "jack2 detected, replacing with pipewire-jack..."
+  sudo pacman -Rdd --noconfirm jack2
+fi
+
+# --- Official packages -------------------------------------------------------
+log_info "Installing pacman packages (components: ${COMPONENTS[*]})..."
+mapfile -t pacman_pkgs < <(collect pacman)
+if [ "${#pacman_pkgs[@]}" -gt 0 ]; then
+  sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
+fi
 
 # --- AUR packages ------------------------------------------------------------
 log_info "Installing AUR packages..."
-mapfile -t aur_pkgs < <(parse_list "$AUR_LIST")
-paru -S --needed --noconfirm "${aur_pkgs[@]}"
+mapfile -t aur_pkgs < <(collect aur)
+if [ "${#aur_pkgs[@]}" -gt 0 ]; then
+  paru -S --needed --noconfirm "${aur_pkgs[@]}"
+fi
 
+{{ if has "audio_pro" $components -}}
 log_info "Adding user to realtime group for audio..."
 sudo usermod -aG realtime "$USER"
+{{ end -}}
 
 # Ensure user is in wheel group for passwordless sudo
 log_info "Ensuring user is in wheel group..."
 sudo usermod -aG wheel "$USER"
-
+{{ if has "peripherals" $components }}
 # --- Logitech mouse (MX Master 3S) ------------------------------------------
 if command -v logid &>/dev/null; then
   log_info "Configuring Logitech MX Master 3S..."
@@ -91,5 +146,5 @@ devices: (
 EOF
   sudo systemctl enable --now logid.service 2>/dev/null || true
 fi
-
+{{ end -}}
 log_pass "Packages installed successfully."

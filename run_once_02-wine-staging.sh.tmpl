@@ -6,12 +6,15 @@
 # No system packages — fully portable, multiple runners can coexist.
 # Idempotent: safe to re-run, skips if already set up.
 #
-# OPTIONAL — disabled unless `wine = true` is set in the chezmoi data
-# (~/.config/chezmoi/chezmoi.toml, [data] section). The wine stack (runner,
-# winetricks, yabridge) is the only thing this repo installs for Windows VSTs;
-# everything else works without it.
+# OPTIONAL — disabled unless "wine" is listed in the chezmoi data `components`
+# array (~/.config/chezmoi/chezmoi.toml, [data] section). The legacy `wine =
+# true` switch is still honoured. The wine stack (runner, winetricks, yabridge)
+# is the only thing this repo installs for Windows VSTs; everything else works
+# without it.
 # =============================================================================
-{{ $wine := false }}{{ if hasKey . "wine" }}{{ $wine = index . "wine" }}{{ end }}
+{{ $components := list }}{{ if hasKey . "components" }}{{ $components = index . "components" }}{{ end }}
+{{ $wine := has "wine" $components }}
+{{ if and (hasKey . "wine") (index . "wine") }}{{ $wine = true }}{{ end }}
 set -euo pipefail
 
 # Logging helpers: .lib_logging.sh ships in the chezmoi source dir and is always
@@ -53,8 +56,9 @@ is_runner_ok() {
 
 # ---------------------------------------------------------------------------
 # 0. Wine-only packages
-#    These used to live in packages.pacman, which made every machine carry them
-#    even with wine disabled. They are installed here so they follow the switch.
+#    These used to live in the monolithic package list, which made every machine
+#    carry them even with wine disabled. They are installed here so they follow
+#    the component switch.
 # ---------------------------------------------------------------------------
 if ! command -v winetricks >/dev/null 2>&1; then
   log_info "Installing winetricks..."
@@ -151,5 +155,5 @@ fi
 
 log_pass "Wine setup complete."
 {{ else }}
-log_skip "wine disabled (set wine = true in ~/.config/chezmoi/chezmoi.toml, [data])"
+log_skip "wine disabled (add \"wine\" to components in ~/.config/chezmoi/chezmoi.toml, [data])"
 {{ end }}

@@ -1,0 +1,9 @@
+# =============================================================================
+# packages.d/creative.pacman — content creation / capture.
+# Component: creative
+# Installed by run_once_01-packages.sh.tmpl
+# =============================================================================
+
+blender
+obs-studio
+# davinci-resolve               # optional, validate before deploying

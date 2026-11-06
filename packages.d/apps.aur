@@ -1,0 +1,8 @@
+# =============================================================================
+# packages.d/apps.aur — AUR side of the apps component.
+# Installed by run_once_01-packages.sh.tmpl (via paru)
+# =============================================================================
+
+vesktop-bin                     # Discord with native Wayland support
+zapzap                          # WhatsApp
+pcloud-drive

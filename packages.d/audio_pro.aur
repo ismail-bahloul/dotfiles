@@ -1,0 +1,9 @@
+# =============================================================================
+# packages.d/audio_pro.aur — AUR plugins for the audio_pro component.
+# Installed by run_once_01-packages.sh.tmpl (via paru)
+# =============================================================================
+
+airwindows-consolidated-bin
+tal-reverb4-clap-bin
+zl-compressor-bin
+zl-equalizer-bin

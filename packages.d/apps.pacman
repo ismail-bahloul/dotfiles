@@ -1,0 +1,12 @@
+# =============================================================================
+# packages.d/apps.pacman — everyday desktop applications.
+# Component: apps
+# Installed by run_once_01-packages.sh.tmpl
+# =============================================================================
+
+firefox
+zed
+obsidian
+bitwarden                       # password manager
+bitwarden-cli                   # CLI vault (SSH keys, backup)
+localsend                       # AirDrop-like file sharing

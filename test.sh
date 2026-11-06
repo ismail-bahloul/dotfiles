@@ -92,15 +92,37 @@ while IFS= read -r r; do
   fi
 done < <(grep -oE 'run_(once|onchange)_[0-9]+-[A-Za-z0-9._-]+\.sh(\.tmpl)?' README.md | sort -u)
 
-# ─── Package lists ───────────────────────────────────────────────────────────
-log_section "Package lists"
+# ─── Package registry ────────────────────────────────────────────────────────
+# One <component>.pacman per component is the rule (it may hold no package when
+# the component's packages are installed by its own script); .aur is optional.
+log_section "Package registry"
 
-for f in packages.pacman packages.aur; do
+for f in packages.d/*.pacman; do
   dups=$(grep -v '^[[:space:]]*#' "$f" | awk 'NF {print $1}' | sort | uniq -d)
   if [ -z "$dups" ]; then
     log_pass "$f: no duplicate entry"
   else
     log_fail "$f: duplicate entry: $(printf '%s ' $dups)"
+  fi
+done
+for f in packages.d/*.aur; do
+  dups=$(grep -v '^[[:space:]]*#' "$f" | awk 'NF {print $1}' | sort | uniq -d)
+  if [ -z "$dups" ]; then
+    log_pass "$f: no duplicate entry"
+  else
+    log_fail "$f: duplicate entry: $(printf '%s ' $dups)"
+  fi
+done
+
+# A component nobody can discover is a component that does not exist.
+log_section "Components documented"
+
+for f in packages.d/*.pacman; do
+  comp=$(basename "$f" .pacman)
+  if grep -qF "\`$comp\`" README.md; then
+    log_pass "$comp documented"
+  else
+    log_fail "$comp is not documented in README.md"
   fi
 done
 
@@ -125,7 +147,7 @@ log_section "Shell syntax"
 for f in install.sh validate.sh run_once_*.sh* run_onchange_*.sh*; do
   # .tmpl scripts carry a chezmoi hash line: render them before the syntax check
   case "$f" in
-    *.tmpl) check() { chezmoi -S "$PWD" execute-template < "$f" | bash -n; } ;;
+    *.tmpl) check() { ( set -o pipefail; chezmoi -S "$PWD" execute-template < "$f" | bash -n ); } ;;
     *)      check() { bash -n "$f"; } ;;
   esac
   if check; then

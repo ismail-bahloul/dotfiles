@@ -3,8 +3,9 @@
 # it to a leading dot), so anything that must stay repo-only is listed below.
 
 
-packages.pacman
-packages.aur
+# Package registry: one <component>.{pacman,aur} per component, read by
+# run_once_01-packages.sh.tmpl (not deployed to ~/)
+packages.d
 README.md
 LICENSE
 validate.sh
