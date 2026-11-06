@@ -108,6 +108,12 @@ if [ "${#pacman_pkgs[@]}" -gt 0 ]; then
   if ! pkg_out=$(sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}" 2>&1); then
     printf '%s\n' "$pkg_out"
     mapfile -t unavailable < <(printf '%s\n' "$pkg_out" | sed -n 's/^error: target not found: //p')
+    # One hint covers both shapes of the lib32 failure: an unknown target (the sync
+    # DBs have no multilib) and an unsatisfiable lib32-* dependency (multilib is
+    # commented out while the CachyOS repos still ship a few 32-bit packages).
+    if printf '%s\n' "$pkg_out" | grep -q 'lib32-'; then
+      log_warn "lib32-* needs [multilib]: uncomment it in /etc/pacman.conf, run pacman -Sy, re-apply"
+    fi
     if [ "${#unavailable[@]}" -eq 0 ]; then
       log_fail "pacman could not install the packages (see above)"
       exit 1
@@ -123,9 +129,6 @@ if [ "${#pacman_pkgs[@]}" -gt 0 ]; then
     for pkg in "${unavailable[@]}"; do
       log_warn "unknown package '$pkg' — skipped"
     done
-    if printf '%s\n' "${unavailable[@]}" | grep -q '^lib32-'; then
-      log_warn "lib32-* lives in [multilib]: enable it in /etc/pacman.conf, run pacman -Sy, re-apply"
-    fi
     log_info "retrying with ${#remaining[@]} package(s)..."
     if [ "${#remaining[@]}" -gt 0 ]; then
       sudo pacman -S --needed --noconfirm "${remaining[@]}"

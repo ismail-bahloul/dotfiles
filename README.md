@@ -28,6 +28,11 @@ chezmoi update --apply
 
 SSH works too: `git@github.com:ismail-bahloul/dotfiles.git`.
 
+A stock **Arch** needs `[multilib]` enabled in `/etc/pacman.conf` (`pacman -Sy`
+afterwards): the 32-bit Wine/Steam/NVIDIA/Mesa packages live there. CachyOS
+enables it by default, a fresh Arch does not — the CachyOS repos ship a few
+`lib32-*` builds but not their dependencies, so without it the package step fails.
+
 The blocks above carry no `#` comments on purpose: a stock zsh has
 `interactive_comments` off, so pasting a commented block executes `#` as a
 command (and the parentheses in the text break the parse).
