@@ -153,25 +153,33 @@ rm -f "$HOME/.local/share/chezmoi/.chezmoi.lock"
 log_section "Apply dotfiles"
 
 log_info "Applying dotfiles from GitHub..."
+APPLY_OK=true
 if [ -d "$HOME/.local/share/chezmoi/.git" ]; then
   if ! chezmoi update --apply; then
     log_warn "chezmoi update failed — fallback: chezmoi init --apply"
-    chezmoi init --apply "$REPO_URL"
+    chezmoi init --apply "$REPO_URL" || APPLY_OK=false
   fi
 else
-  chezmoi init --apply "$REPO_URL"
+  chezmoi init --apply "$REPO_URL" || APPLY_OK=false
 fi
 
-# The apply has to converge: anything still differing means a target could not
-# be written (permissions, a failing run_onchange_ script, a broken template).
-# This is the one post-apply check that is meaningful in update mode — it tests
-# the transition, not the machine state — and it costs nothing.
-pending=$(chezmoi status)
-if [ -z "$pending" ]; then
-  log_pass "Dotfiles applied"
+# A failed apply used to kill the script right here (set -e), with no summary and
+# nothing pointing at the cause — which is how a bootstrap ends up looking like it
+# "just stopped". Report it instead, and let the summary carry the verdict.
+if ! $APPLY_OK; then
+  log_fail "applying the dotfiles failed — see the output above"
 else
-  log_fail "chezmoi apply did not converge, still pending:"
-  printf '%s\n' "$pending" | sed 's/^/      /'
+  # The apply has to converge: anything still differing means a target could not
+  # be written (permissions, a failing run_onchange_ script, a broken template).
+  # This is the one post-apply check that is meaningful in update mode — it tests
+  # the transition, not the machine state — and it costs nothing.
+  pending=$(chezmoi status)
+  if [ -z "$pending" ]; then
+    log_pass "Dotfiles applied"
+  else
+    log_fail "chezmoi apply did not converge, still pending:"
+    printf '%s\n' "$pending" | sed 's/^/      /'
+  fi
 fi
 
 # The sudo keepalive is killed by the EXIT trap (see top of the script).

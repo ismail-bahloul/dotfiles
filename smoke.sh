@@ -90,7 +90,9 @@ FAKE_UPDATE_RC=1 FAKE_INIT_RC=0 FAKE_STATUS='' run_case update-fail-fallback 0 "
 FAKE_UPDATE_RC=0 FAKE_STATUS=" M .zshrc" run_case not-converged 1 "✘ 1 CHECK(S) FAILED" 0 ""
 FAKE_UPDATE_RC=0 FAKE_STATUS='' run_case validate-fails 1 "✘ 1 CHECK(S) FAILED" 1 --validate
 FAKE_UPDATE_RC=0 FAKE_STATUS='' run_case validate-passes 0 "✔ ALL CHECKS PASSED" 0 --validate
+FAKE_UPDATE_RC=1 FAKE_INIT_RC=1 FAKE_STATUS='' run_case update-apply-fails 1 "✘ 1 CHECK(S) FAILED" 0 ""
 FAKE_INIT_RC=0 run_case fresh-install 0 "✔ ALL CHECKS PASSED" 0 "" fresh
+FAKE_INIT_RC=1 run_case fresh-apply-fails 1 "✘ 1 CHECK(S) FAILED" 0 "" fresh
 
 echo ""
 echo "result: $ok ok, $ko failed"
