@@ -8,6 +8,12 @@
 # omenctl is developed in myomen15 and published as a standalone repo. Use a
 # local checkout when one is present (the development loop), otherwise clone
 # the standalone repo. Override either path with OMENCTL_SRC / OMENCTL_REPO.
+#
+# The standalone repo is PRIVATE: without credentials the clone is skipped with
+# a warning (the rest of the dotfiles applies normally). Provide one of:
+#   OMENCTL_SRC=/path/to/omenctl            local checkout (best on this laptop)
+#   OMENCTL_REPO=git@github.com:…omenctl.git  SSH, with a key registered
+#   gh auth login && gh auth setup-git      HTTPS credential helper
 # =============================================================================
 set -e
 
@@ -32,8 +38,17 @@ if [ -f "$OMENCTL_LOCAL/omenctl.py" ]; then
 else
   WORKDIR=$(mktemp -d)
   log_info "Cloning omenctl $OMENCTL_REF from $OMENCTL_REPO..."
-  if ! git clone --depth=1 --branch "$OMENCTL_REF" "$OMENCTL_REPO" "$WORKDIR/omenctl" > /dev/null 2>&1; then
-    log_fatal "could not clone $OMENCTL_REPO at $OMENCTL_REF (set OMENCTL_SRC to a local checkout)"
+  # The standalone repo is private. Never let git ask for a password: chezmoi
+  # runs this non-interactively, where the prompt bypasses the redirection (it
+  # goes to /dev/tty) and blocks or prints garbage. And do not abort the whole
+  # apply on failure: omenctl drives this laptop's fans, nothing else in the
+  # dotfiles depends on it, so a missing credential is a warning, not a break.
+  if ! clone_err=$(GIT_TERMINAL_PROMPT=0 git clone --depth=1 --branch "$OMENCTL_REF" "$OMENCTL_REPO" "$WORKDIR/omenctl" 2>&1); then
+    printf '%s\n' "$clone_err"
+    log_warn "omenctl not updated: $OMENCTL_REPO is private and no credentials are available"
+    log_detail "OMENCTL_SRC=/path/to/omenctl (local checkout) or OMENCTL_REPO=git@github.com:ismail-bahloul/omenctl.git"
+    log_skip "skipping omenctl — the fans stay on the EC default curve"
+    exit 0
   fi
   SRC="$WORKDIR/omenctl"
 fi

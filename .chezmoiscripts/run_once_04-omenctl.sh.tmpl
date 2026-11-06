@@ -49,23 +49,33 @@ sudo systemctl daemon-reload 2>/dev/null || true
 # ---------------------------------------------------------------------------
 # omenctl must already be installed (run_onchange_03-omenctl.sh)
 # ---------------------------------------------------------------------------
+# Its standalone repo is private, so a machine without credentials (or without
+# the HP OMEN hardware at all) legitimately has no omenctl. Deploying its units
+# anyway would leave services pointing at a missing binary, failing at every
+# boot — warn, skip those units, and keep the rest of this script.
+OMENCTL_OK=true
 for f in /usr/local/bin/omenctl /usr/local/bin/omenctl-run.sh /etc/systemd/system/omenctl.service; do
   if [ ! -e "$f" ]; then
-    log_fatal "$f is missing; run run_onchange_03-omenctl.sh first"
+    log_warn "$f is missing — omenctl was not installed (private repo, no credentials?)"
+    OMENCTL_OK=false
   fi
 done
 
 # ---------------------------------------------------------------------------
 # Install the units and udev rules
 # ---------------------------------------------------------------------------
+if $OMENCTL_OK; then
+  for f in \
+    etc/systemd/system/omenctl-profile.service \
+    etc/systemd/system/omenctl-profile.timer \
+    etc/systemd/system/omenctl-watch.service; do
+    install_system_file "$f" || true
+  done
+  install_system_file etc/udev/rules.d/99-omenctl.rules || true
+fi
+# Power/audio rules are not omenctl-specific: they apply whenever the hardware
+# is there, so they are deployed regardless.
 for f in \
-  etc/systemd/system/omenctl-profile.service \
-  etc/systemd/system/omenctl-profile.timer \
-  etc/systemd/system/omenctl-watch.service; do
-  install_system_file "$f" || true
-done
-for f in \
-  etc/udev/rules.d/99-omenctl.rules \
   etc/udev/rules.d/99-powercap.rules \
   etc/udev/rules.d/99-rme-babyface.rules; do
   install_system_file "$f" || true
@@ -74,19 +84,22 @@ done
 # ---------------------------------------------------------------------------
 # Enable and (re)start
 # ---------------------------------------------------------------------------
-sudo systemctl daemon-reload
-sudo systemctl enable omenctl.service omenctl-profile.service omenctl-profile.timer omenctl-watch.service
-# The fan daemon is long-running: `start` is a no-op if it already owns the
-# fans. A restart would release the latch and re-take it for no reason.
-sudo systemctl start omenctl.service
-sudo systemctl restart omenctl-profile.service
-sudo systemctl restart omenctl-profile.timer
-sudo systemctl restart omenctl-watch.service
+if $OMENCTL_OK; then
+  sudo systemctl daemon-reload
+  sudo systemctl enable omenctl.service omenctl-profile.service omenctl-profile.timer omenctl-watch.service
+  # The fan daemon is long-running: `start` is a no-op if it already owns the
+  # fans. A restart would release the latch and re-take it for no reason.
+  sudo systemctl start omenctl.service
+  sudo systemctl restart omenctl-profile.service
+  sudo systemctl restart omenctl-profile.timer
+  sudo systemctl restart omenctl-watch.service
+  log_pass "omenctl units installed."
+else
+  log_skip "omenctl units skipped (no omenctl binary on this machine)"
+fi
 
 # Enable NVIDIA services (suspend/resume only)
 sudo systemctl enable nvidia-suspend.service nvidia-resume.service 2>/dev/null || true
 
 # Reload udev rules
 sudo udevadm control --reload-rules
-
-log_pass "omenctl units installed."
