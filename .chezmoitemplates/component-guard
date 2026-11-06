@@ -30,7 +30,7 @@ the legacy `wine = true` switch is still honoured for the wine component only.
 {{- if and (eq .name "wine") (hasKey .data "wine") (index .data "wine") }}{{ $enabled = true }}{{ end -}}
 {{- if not $enabled }}
 log_skip "component '{{ .name }}' disabled — skipping"
-{{- if .teardown }}
+{{- if hasKey . "teardown" }}
 {{ includeTemplate .teardown . }}
 {{- end }}
 exit 0

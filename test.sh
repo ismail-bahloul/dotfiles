@@ -147,6 +147,24 @@ while read -r script comp; do
     log_fail "$script guards on '$comp', which is not in packages.d/"
   else
     log_pass "$script gated on '$comp'"
+    # Render both states. The disabled branch never runs on this machine, so a
+    # template error there (missingkey=error turns any bad key access into a
+    # failure) would otherwise surface only when a component is turned off.
+    cfg_off=$(mktemp --suffix=.toml)
+    cfg_on=$(mktemp --suffix=.toml)
+    printf '[data]\n    components = []\n' > "$cfg_off"
+    printf '[data]\n    components = ["%s"]\n' "$comp" > "$cfg_on"
+    if ( set -o pipefail; chezmoi --config "$cfg_off" -S "$PWD" execute-template < "$f" | bash -n ); then
+      log_pass "$script renders with '$comp' disabled"
+    else
+      log_fail "$script fails to render with '$comp' disabled"
+    fi
+    if ( set -o pipefail; chezmoi --config "$cfg_on" -S "$PWD" execute-template < "$f" | bash -n ); then
+      log_pass "$script renders with '$comp' enabled"
+    else
+      log_fail "$script fails to render with '$comp' enabled"
+    fi
+    rm -f "$cfg_off" "$cfg_on"
   fi
 done <<'EOF'
 run_once_02-wine-staging.sh.tmpl     wine
