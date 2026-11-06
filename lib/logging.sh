@@ -16,14 +16,15 @@
 #   log_detail "message"   —   • message (dimmed sub-info)
 #   log_cmd   "command"    — $ command (highlighted command)
 #   log_summary            — verdict: ✘ failures, else ! warnings, else
-#                            ⋯ LOG_UNVALIDATED, else ✔ all checks passed
+#                            ✔ applied (LOG_UNVALIDATED), else ✔ all checks passed
 #
 # The glyphs are plain text (✔ ✘ ! → ⋯), never emoji: they keep the same
 # single-cell width and colour in every terminal and font.
 #
 # State the caller may set:
-#   LOG_UNVALIDATED=1      — nothing was checked, so the summary must not claim
-#                            "all checks passed" (e.g. install.sh update mode)
+#   LOG_UNVALIDATED=1      — the apply was verified but the machine was not, so
+#                            the summary reports "✔ APPLIED — nothing validated"
+#                            instead of claiming that all checks passed
 # =============================================================================
 
 # ─── Colors ────────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ LOG_STEP=0
 LOG_TOTAL=0
 LOG_ERR=0         # failed checks (log_fail)
 LOG_WARN=0        # warnings (log_warn)
-LOG_UNVALIDATED=0 # 1 → the summary reports that nothing was validated
+LOG_UNVALIDATED=0 # 1 → apply verified, machine not: summary reports "APPLIED"
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -109,7 +110,7 @@ log_summary() {
   elif [ "$LOG_WARN" -gt 0 ]; then
     echo -e "  ${YELLOW}${BOLD}! PASSED WITH ${LOG_WARN} WARNING(S)${RESET}"
   elif [ "$LOG_UNVALIDATED" -eq 1 ]; then
-    echo -e "  ${DIM}⋯ NOTHING VALIDATED${RESET}"
+    echo -e "  ${GREEN}${BOLD}✔ APPLIED${RESET} ${DIM}— nothing validated${RESET}"
   else
     echo -e "  ${GREEN}${BOLD}✔ ALL CHECKS PASSED${RESET}"
   fi

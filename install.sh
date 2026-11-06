@@ -161,7 +161,18 @@ if [ -d "$HOME/.local/share/chezmoi/.git" ]; then
 else
   chezmoi init --apply "$REPO_URL"
 fi
-log_pass "Dotfiles applied"
+
+# The apply has to converge: anything still differing means a target could not
+# be written (permissions, a failing run_onchange_ script, a broken template).
+# This is the one post-apply check that is meaningful in update mode — it tests
+# the transition, not the machine state — and it costs nothing.
+pending=$(chezmoi status)
+if [ -z "$pending" ]; then
+  log_pass "Dotfiles applied"
+else
+  log_fail "chezmoi apply did not converge, still pending:"
+  printf '%s\n' "$pending" | sed 's/^/      /'
+fi
 
 # The sudo keepalive is killed by the EXIT trap (see top of the script).
 
@@ -182,7 +193,8 @@ if [ "$INSTALL_TYPE" = "fresh" ] || $FORCE_VALIDATE; then
 else
   log_skip "Validation skipped (run with --validate to force)"
   log_info "Restart your session to apply all changes"
-  # Nothing was checked: the summary must not claim "all checks passed".
+  # The apply itself was checked (chezmoi status) but the machine state was not:
+  # the summary must say so instead of claiming that all checks passed.
   LOG_UNVALIDATED=1
 fi
 
