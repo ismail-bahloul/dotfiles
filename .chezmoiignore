@@ -15,6 +15,7 @@ LICENSE
 validate.sh
 install.sh
 test.sh
+smoke.sh
 
 # Shell libraries sourced by install.sh / validate.sh / .chezmoiscripts/*
 lib

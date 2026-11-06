@@ -245,7 +245,7 @@ done
 # ─── Shell syntax ───────────────────────────────────────────────────────────
 log_section "Shell syntax"
 
-for f in install.sh validate.sh .chezmoiscripts/run_once_*.sh* .chezmoiscripts/run_onchange_*.sh*; do
+for f in install.sh validate.sh smoke.sh .chezmoiscripts/run_once_*.sh* .chezmoiscripts/run_onchange_*.sh*; do
   # .tmpl scripts carry a chezmoi hash line: render them before the syntax check
   case "$f" in
     *.tmpl) check() { ( set -o pipefail; chezmoi -S "$PWD" execute-template < "$f" | bash -n ); } ;;

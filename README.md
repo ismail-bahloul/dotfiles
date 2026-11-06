@@ -29,6 +29,7 @@ SSH works too: `git@github.com:ismail-bahloul/dotfiles.git`.
 ```bash
 ~/dotfiles/install.sh --dry-run     # prerequisites only, nothing is changed
 ~/dotfiles/install.sh --validate    # + full machine audit (validate.sh)
+~/dotfiles/smoke.sh                 # install.sh's branches, offline (fakes, no sudo)
 ~/dotfiles/test.sh                  # repo lint, run before pushing
 ```
 

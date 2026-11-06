@@ -25,6 +25,7 @@ dotfiles/
 ├── install.sh                        # bootstrap (paru + chezmoi + apply, --dry-run)
 ├── validate.sh                       # post-install verification script
 ├── test.sh                           # pre-push lint of the repo (bash -n, JSON, untracked)
+├── smoke.sh                          # offline test of install.sh's branches (fake chezmoi)
 ├── .chezmoiscripts/                   # scripts run by chezmoi, never deployed
 │   ├── run_once_01-packages.sh.tmpl      # base + enabled components (packages.d/)
 │   ├── run_once_02-wine-staging.sh.tmpl  # wine-staging runner (optional: "wine" component)
