@@ -15,6 +15,7 @@
 #   - umask=022: files 644 / folders 755 (instead of 777 by default).
 #
 # Idempotent: does nothing if the entry already exists.
+# Self-contained: does nothing at all when this machine's partition is absent.
 # =============================================================================
 set -e
 
@@ -25,6 +26,17 @@ MP="$HOME/SHARED"
 PART_UUID="5CAC12755C11BA05"
 OPTS="rw,uid=$(id -u),gid=$(id -g),iocharset=utf8,umask=022,windows_names,noatime,nofail,x-systemd.device-timeout=10"
 LINE="UUID=$PART_UUID $MP ntfs3 $OPTS 0 0"
+
+# --- 0) Is this machine's partition actually here? ---------------------------
+# PART_UUID is the only machine-specific constant in the repo, and a plain clone
+# elsewhere must stay usable: without this check, a machine without the partition
+# gets a dead fstab entry and a failed mount unit (nofail keeps the boot intact,
+# but the entry is still wrong). The by-uuid symlink comes from the partition
+# table, so it is there even when the partition is not mounted.
+if [ ! -e "/dev/disk/by-uuid/$PART_UUID" ]; then
+  log_skip "no partition with UUID $PART_UUID — nothing to mount, skipping"
+  exit 0
+fi
 
 # --- 1) Mount point (user side) ----------------------------------------------
 if [ -d "$MP" ]; then
