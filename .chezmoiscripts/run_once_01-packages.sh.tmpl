@@ -12,10 +12,6 @@
 # listed in `.components`. A config that has no `components` key at all (one
 # written before the registry existed) keeps the old behaviour: every known
 # component except wine, which stays explicitly opt-in.
-#
-# The etc-hash below covers the system file this script installs (the logid
-# config), so chezmoi re-runs it when that file changes.
-# etc-hash: {{ range list "etc/logid.cfg" }}{{ include . | sha256sum | trunc 8 }}{{ end }}
 # =============================================================================
 {{ $hasComponents := hasKey . "components" }}
 {{ $components := list }}{{ if $hasComponents }}{{ $components = index . "components" }}{{ end }}
@@ -32,7 +28,6 @@ if ! command -v paru &>/dev/null; then
 fi
 
 SCRIPT_DIR="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}"
-source "$SCRIPT_DIR/lib/system.sh"
 PKG_DIR="$SCRIPT_DIR/packages.d"
 
 # Components whose packages to install: base + the enabled ones.
@@ -116,16 +111,4 @@ sudo usermod -aG realtime "$USER"
 # Ensure user is in wheel group for passwordless sudo
 log_info "Ensuring user is in wheel group..."
 sudo usermod -aG wheel "$USER"
-{{ if has "peripherals" $components }}
-# --- Logitech mouse (MX Master 3S) ------------------------------------------
-if command -v logid &>/dev/null; then
-  log_info "Configuring Logitech MX Master 3S..."
-  # /etc/logid.cfg is versioned under etc/ (the repo mirrors /), so validate.sh
-  # compares it with the installed copy.
-  if install_system_file etc/logid.cfg; then
-    sudo systemctl restart logid.service 2>/dev/null || true
-  fi
-  sudo systemctl enable --now logid.service 2>/dev/null || true
-fi
-{{ end -}}
 log_pass "Packages installed successfully."

@@ -109,6 +109,7 @@ to the guard).
 | `run_once_05-vfio-setup.sh.tmpl` | `virtualization` |
 | `run_once_06-libvirt-setup.sh.tmpl` | `virtualization` |
 | `run_onchange_07-looking-glass.sh.tmpl` | `looking_glass` (with teardown) |
+| `run_onchange_12-peripherals.sh.tmpl` | `peripherals` |
 
 The rest of the `run_once_*` scripts are machine-wide (packages, omenctl, KDE
 settings, boot tuning, fstab) and have no component to belong to.
@@ -134,7 +135,8 @@ dotfiles/
 │   ├── run_once_08-kde-settings.sh       # KDE settings enforced via kwriteconfig6
 │   ├── run_once_09-material-you.sh       # Material You “follows-the-wallpaper” (kitty/btop/zed hook)
 │   ├── run_once_10-fstab-shared.sh       # shared NTFS partition in fstab
-│   └── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
+│   ├── run_once_11-boot-tuning.sh.tmpl   # initramfs slimming + Limine snapshot cap
+│   └── run_onchange_12-peripherals.sh.tmpl # logid config (MX Master 3S) — peripherals
 ├── lib/                               # shell libraries, sourced by the scripts above
 │   ├── logging.sh                     # log_* helpers (+ summary counters)
 │   └── system.sh                      # install_system_file: etc/… → /etc/…
@@ -203,7 +205,7 @@ tmpfiles/sysctl drop-ins, the logid config) are versioned under `etc/` with the
 repo tree mirrors `/etc`. They are not deployed by chezmoi itself (`etc` is in
 `.chezmoiignore`); a script in `.chezmoiscripts/` installs them:
 
-- `run_once_01-packages.sh.tmpl` — `/etc/logid.cfg` (the `peripherals` block)
+- `run_onchange_12-peripherals.sh.tmpl` — `/etc/logid.cfg`
 - `run_once_04-omenctl.sh.tmpl` — the omenctl profile/watch units and udev rules
 - `run_onchange_07-looking-glass.sh.tmpl` — the IVSHMEM tmpfiles entry and the hugepages sysctl
 - `run_once_11-boot-tuning.sh.tmpl` — the initramfs hooks and the VFIO drop-in

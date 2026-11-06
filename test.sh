@@ -171,6 +171,7 @@ run_once_02-wine-staging.sh.tmpl     wine
 run_once_05-vfio-setup.sh.tmpl       virtualization
 run_once_06-libvirt-setup.sh.tmpl    virtualization
 run_onchange_07-looking-glass.sh.tmpl looking_glass
+run_onchange_12-peripherals.sh.tmpl  peripherals
 EOF
 
 # ─── Contract: top-level entries are deployed or explicitly ignored ──────────
