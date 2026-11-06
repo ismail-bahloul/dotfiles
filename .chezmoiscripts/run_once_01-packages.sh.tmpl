@@ -100,7 +100,37 @@ fi
 log_info "Installing pacman packages (components: ${COMPONENTS[*]})..."
 mapfile -t pacman_pkgs < <(collect pacman)
 if [ "${#pacman_pkgs[@]}" -gt 0 ]; then
-  sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
+  # `pacman -S` is all-or-nothing: a single name the sync DBs do not know (a
+  # lib32-* package when [multilib] is off, a renamed package…) fails the whole
+  # transaction and, with set -e, aborted the bootstrap with nothing installed.
+  # Retry without the unavailable names — but only when pacman told us which
+  # ones: any other failure is a real one and must stop here.
+  if ! pkg_out=$(sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}" 2>&1); then
+    printf '%s\n' "$pkg_out"
+    mapfile -t unavailable < <(printf '%s\n' "$pkg_out" | sed -n 's/^error: target not found: //p')
+    if [ "${#unavailable[@]}" -eq 0 ]; then
+      log_fail "pacman could not install the packages (see above)"
+      exit 1
+    fi
+    remaining=()
+    for pkg in "${pacman_pkgs[@]}"; do
+      skip=false
+      for bad in "${unavailable[@]}"; do
+        if [ "$pkg" = "$bad" ]; then skip=true; fi
+      done
+      if ! $skip; then remaining+=("$pkg"); fi
+    done
+    for pkg in "${unavailable[@]}"; do
+      log_warn "unknown package '$pkg' — skipped"
+    done
+    if printf '%s\n' "${unavailable[@]}" | grep -q '^lib32-'; then
+      log_warn "lib32-* lives in [multilib]: enable it in /etc/pacman.conf, run pacman -Sy, re-apply"
+    fi
+    log_info "retrying with ${#remaining[@]} package(s)..."
+    if [ "${#remaining[@]}" -gt 0 ]; then
+      sudo pacman -S --needed --noconfirm "${remaining[@]}"
+    fi
+  fi
 fi
 
 # --- AUR packages ------------------------------------------------------------
