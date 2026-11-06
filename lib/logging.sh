@@ -15,7 +15,7 @@
 #   log_skip  "message"    — ⋯ message (dimmed, already done)
 #   log_detail "message"   —   • message (dimmed sub-info)
 #   log_cmd   "command"    — $ command (highlighted command)
-#   log_summary            — show final ✅ or ⚠ count
+#   log_summary            — show final ✔ / ✘ result line
 # =============================================================================
 
 # ─── Colors ────────────────────────────────────────────────────────────────
@@ -93,9 +93,9 @@ log_summary() {
   _log_sep "Result" 0 0
   echo ""
   if [ "$LOG_ERR" -eq 0 ]; then
-    echo -e "  ${GREEN}${BOLD}✅ ALL CHECKS PASSED${RESET}"
+    echo -e "  ${GREEN}${BOLD}✔ ALL CHECKS PASSED${RESET}"
   else
-    echo -e "  ${RED}${BOLD}⚠ ${LOG_ERR} check(s) failed${RESET}"
+    echo -e "  ${RED}${BOLD}✘ ${LOG_ERR} CHECK(S) FAILED${RESET}"
   fi
   echo ""
 }
