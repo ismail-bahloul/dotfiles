@@ -2,7 +2,8 @@
 # =============================================================================
 # run_once_01-packages.sh.tmpl
 # Run once by chezmoi, and re-run whenever the rendered content changes — i.e.
-# whenever the `components` list in the chezmoi data changes.
+# whenever the `components` list in the chezmoi data changes, or any list under
+# packages.d/ is edited (see the pkg-hash line below).
 #
 # Packages come from packages.d/<component>.{pacman,aur}. One rule:
 #   - every component owns a packages.d/<component>.pacman (possibly with no
@@ -12,7 +13,13 @@
 # listed in `.components`. A config that has no `components` key at all (one
 # written before the registry existed) keeps the old behaviour: every known
 # component except wine, which stays explicitly opt-in.
+#
+# pkg-hash below: chezmoi only re-runs a run_once_ script when the script's own
+# rendered content changes, yet this script reads packages.d/ at runtime. Without
+# these hashes in the content, editing a package list would never reach an
+# already-bootstrapped machine (the packages would silently never be installed).
 # =============================================================================
+# pkg-hash: {{ range (sortAlpha (glob (joinPath .chezmoi.sourceDir "packages.d" "*"))) }}{{ include . | sha256sum | trunc 8 }}{{ end }}
 {{ $hasComponents := hasKey . "components" }}
 {{ $components := list }}{{ if $hasComponents }}{{ $components = index . "components" }}{{ end }}
 {{ if and (hasKey . "wine") (index . "wine") }}{{ $components = append $components "wine" }}{{ end }}

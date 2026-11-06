@@ -115,6 +115,29 @@ for f in packages.d/*.aur; do
   fi
 done
 
+# ─── Contract: package lists re-trigger run_once_01 ──────────────────────────
+# chezmoi re-runs a run_once_ script only when its rendered content changes, and
+# run_once_01 reads packages.d/ at runtime. Its pkg-hash line stands in for those
+# files: without it, editing a package list never re-runs the script, so a newly
+# added package would silently never reach an existing machine.
+log_section "Package hash coverage"
+
+pkg_script=.chezmoiscripts/run_once_01-packages.sh.tmpl
+if ! grep -q "^# pkg-hash:" "$pkg_script"; then
+  log_fail "$pkg_script has no pkg-hash line (packages.d edits never re-run it)"
+else
+  log_pass "$pkg_script carries a pkg-hash line"
+  expected=$(find packages.d -maxdepth 1 -type f | wc -l)
+  # The hashes are concatenated without separators: 8 hex chars per list.
+  got=$(chezmoi -S "$PWD" execute-template < "$pkg_script" \
+    | sed -n 's/^# pkg-hash: //p' | awk '{ print length($0) / 8 }' || true)
+  if [ "$got" = "$expected" ]; then
+    log_pass "pkg-hash covers all $expected packages.d lists"
+  else
+    log_fail "pkg-hash covers $got/$expected packages.d lists (a list is unhashed)"
+  fi
+fi
+
 # A component nobody can discover is a component that does not exist.
 log_section "Components documented"
 
