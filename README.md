@@ -189,6 +189,12 @@ dotfiles/
 │   └── share/icons/hicolor/scalable/apps/omenctl.svg  # launcher icon
 ```
 
+Scripts live in `.chezmoiscripts/` (a chezmoi special directory: run, never
+deployed). chezmoi applies entries in target-path order, so `.chezmoiscripts/`
+sorts **before** `~/.config` and `~/.local`: a run script must read the repo
+assets it needs from `$CHEZMOI_SOURCE_DIR`, not from `~`, or it will not find
+them on a fresh machine.
+
 ## System files (`etc/`)
 
 Files that live outside `~` (mkinitcpio hooks, systemd units, udev rules,

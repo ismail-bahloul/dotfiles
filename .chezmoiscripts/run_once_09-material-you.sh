@@ -26,7 +26,10 @@ source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
 MYC_CFG="$HOME/.config/kde-material-you-colors/config.conf"
 HOOK="$HOME/.local/bin/kitty-material-you-hook.sh"
-MY_LIB="$HOME/.local/lib/material-you"
+# Generators come from the source tree, not from ~/.local/lib: chezmoi applies
+# entries in target-path order, and .chezmoiscripts/ sorts before .local/, so on
+# a fresh machine the deployed copies do not exist yet when this script runs.
+MY_LIB="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/dot_local/lib/material-you"
 ZS="$HOME/.config/zed/settings.json"
 
 # --- 1) Enable the hook in kde-material-you-colors ---------------------------
