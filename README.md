@@ -15,23 +15,29 @@ non-obvious choices: [`docs/`](docs/).
 ## Install
 
 ```bash
-# bootstrap: clone + install (re-runnable: pulls if the clone is already there)
 [ -d ~/dotfiles/.git ] || git clone https://github.com/ismail-bahloul/dotfiles.git ~/dotfiles
 git -C ~/dotfiles pull --ff-only
 ~/dotfiles/install.sh
+```
 
-# afterwards: update
+To update a machine that is already set up:
+
+```bash
 chezmoi update --apply
 ```
 
 SSH works too: `git@github.com:ismail-bahloul/dotfiles.git`.
 
-```bash
-~/dotfiles/install.sh --dry-run     # prerequisites only, nothing is changed
-~/dotfiles/install.sh --validate    # + full machine audit (validate.sh)
-~/dotfiles/smoke.sh                 # install.sh's branches, offline (fakes, no sudo)
-~/dotfiles/test.sh                  # repo lint, run before pushing
-```
+The blocks above carry no `#` comments on purpose: a stock zsh has
+`interactive_comments` off, so pasting a commented block executes `#` as a
+command (and the parentheses in the text break the parse).
+
+| Command | What it does |
+|---|---|
+| `~/dotfiles/install.sh --dry-run` | prerequisites only, nothing is changed |
+| `~/dotfiles/install.sh --validate` | + full machine audit (`validate.sh`) |
+| `~/dotfiles/smoke.sh` | `install.sh`'s branches, offline (fake chezmoi, no sudo) |
+| `~/dotfiles/test.sh` | repo lint, run before pushing |
 
 `install.sh` installs `paru` and `chezmoi` if missing, applies everything and
 exits non-zero on the first failure. An update is only applied, so it reports
