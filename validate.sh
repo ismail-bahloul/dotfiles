@@ -38,15 +38,18 @@ done
 
 # ─── Packages ───────────────────────────────────────────────────────────────
 # The expected set is base + the enabled components, read from the same chezmoi
-# data run_once_01 renders. Fall back to every component in packages.d/ when
-# chezmoi is unavailable (bare clone, partial machine).
+# data run_once_01 renders. "chezmoi data" exposes the user data at the top
+# level of its JSON (the under-key form is the template's "."-context), so the
+# paths here are `.components` / `.wine`, not `.data.components`. Fall back to
+# every component in packages.d/ when chezmoi is unavailable (bare clone,
+# partial machine).
 log_section "Packages"
 
 components=()
 data_json=$(chezmoi data --format json 2>/dev/null || true)
-if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.data | has("components")' >/dev/null 2>&1; then
+if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e 'has("components")' >/dev/null 2>&1; then
   mapfile -t components < <(
-    printf '%s' "$data_json" | jq -r '.data.components[]?' | awk '$0 != "base" && !seen[$0]++'
+    printf '%s' "$data_json" | jq -r '.components[]?' | awk '$0 != "base" && !seen[$0]++'
   )
   components=(base "${components[@]}")
 else
@@ -59,7 +62,7 @@ else
   done
 fi
 # The legacy switch applies to both paths.
-if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.data.wine == true' >/dev/null 2>&1; then
+if [ -n "$data_json" ] && printf '%s' "$data_json" | jq -e '.wine == true' >/dev/null 2>&1; then
   components+=(wine)
 fi
 
