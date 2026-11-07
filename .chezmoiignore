@@ -16,6 +16,7 @@ validate.sh
 install.sh
 test.sh
 smoke.sh
+bootstrap.sh
 
 # Shell libraries sourced by install.sh / validate.sh / .chezmoiscripts/*
 lib
