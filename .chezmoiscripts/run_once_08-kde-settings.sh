@@ -29,7 +29,10 @@ set -e
 source "${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/lib/logging.sh"
 
 if ! command -v kwriteconfig6 &>/dev/null; then
-  log_fatal "kwriteconfig6 not found (KDE Plasma required)"
+  # Plasma owns these files; without Plasma there is nothing to configure. Skip
+  # instead of aborting: the rest of the dotfiles ($HOME) applies regardless.
+  log_warn "kwriteconfig6 not found (KDE Plasma required) — KDE settings skipped"
+  exit 0
 fi
 
 # --- KWin: effect plugins ---------------------------------------------------

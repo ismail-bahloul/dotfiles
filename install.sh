@@ -116,6 +116,19 @@ if [ "$INSTALL_TYPE" = "fresh" ]; then
   (sudo -v && while true; do sleep 60; sudo -v; done) &>/dev/null &
   KEEPER=$!
   log_pass "Sudo OK"
+
+  # The package set needs 32-bit packages (Wine, Steam, NVIDIA/Mesa), which live
+  # in [multilib]. A stock Arch ships it commented out, CachyOS enables it. A
+  # one-command bootstrap must not stop on that, so enable it here (idempotent)
+  # and refresh the sync DBs: without it run_once_01 dies on "target not found"
+  # and nothing after it ever runs.
+  if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+    log_warn "[multilib] is disabled — enabling it (lib32-* packages need it)"
+    sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+    if ! sudo pacman -Sy --noconfirm >/dev/null 2>&1; then
+      log_warn "pacman -Sy failed — [multilib] may still be unusable"
+    fi
+  fi
 else
   log_skip "Not needed (update mode)"
 fi
