@@ -204,15 +204,14 @@ it owns the two EC fan setpoints, runs the tuned curve at 1 Hz, and applies
 the dGPU lock. It replaces both `nbfc` and the old `power-profile` bash script
 (kept in `myomen15/omenctl/legacy/power-profile/` for reference).
 
-- Upstream: <https://github.com/ismail-bahloul/omenctl> — **private**. The
-  bootstrap clones it with `GIT_TERMINAL_PROMPT=0`; without credentials the
-  script warns and skips (no fan management), and the rest of the dotfiles
-  applies normally. Provide one of: a local checkout (`OMENCTL_SRC=/path/to/
-  omenctl`, the default on this laptop is `~/DATA/05_Code/Projects/myomen15/
-  omenctl`), an SSH key (`OMENCTL_REPO=git@github.com:ismail-bahloul/
-  omenctl.git`), or `gh auth login && gh auth setup-git`. `run_once_04` skips
-  the units when the binary is absent, so a machine without omenctl does not
-  end up with services pointing at nothing.
+- Upstream: <https://github.com/ismail-bahloul/omenctl> — **private**, on purpose
+  (it drives this laptop's EC fans; the public dotfiles must work without it).
+  The installer picks, in order: a local checkout
+  (`OMENCTL_SRC`, default `~/DATA/05_Code/Projects/myomen15/omenctl`), `gh repo
+  clone` when `gh auth status` is ok (`gh auth login` once per machine), then a
+  non-interactive `git clone` (SSH works via `OMENCTL_REPO`). Without any of
+  those it warns and skips, and `run_once_04` then skips the units too — a
+  machine without omenctl does not end up with services pointing at nothing.
 - Installed by `run_onchange_03-omenctl.sh`: a local checkout is used when
   `OMENCTL_SRC` points at one (default: `myomen15/omenctl`), otherwise the pinned
   tag (`OMENCTL_REF`, default `v0.4.0`) is cloned. Bump the ref in the script to

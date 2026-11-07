@@ -12,8 +12,8 @@
 # The standalone repo is PRIVATE: without credentials the clone is skipped with
 # a warning (the rest of the dotfiles applies normally). Provide one of:
 #   OMENCTL_SRC=/path/to/omenctl            local checkout (best on this laptop)
+#   `gh auth login` once                     gh clones it with its own token
 #   OMENCTL_REPO=git@github.com:…omenctl.git  SSH, with a key registered
-#   gh auth login && gh auth setup-git      HTTPS credential helper
 # =============================================================================
 set -e
 
@@ -38,17 +38,30 @@ if [ -f "$OMENCTL_LOCAL/omenctl.py" ]; then
 else
   WORKDIR=$(mktemp -d)
   log_info "Cloning omenctl $OMENCTL_REF from $OMENCTL_REPO..."
-  # The standalone repo is private. Never let git ask for a password: chezmoi
-  # runs this non-interactively, where the prompt bypasses the redirection (it
-  # goes to /dev/tty) and blocks or prints garbage. And do not abort the whole
-  # apply on failure: omenctl drives this laptop's fans, nothing else in the
-  # dotfiles depends on it, so a missing credential is a warning, not a break.
-  if ! clone_err=$(GIT_TERMINAL_PROMPT=0 git clone --depth=1 --branch "$OMENCTL_REF" "$OMENCTL_REPO" "$WORKDIR/omenctl" 2>&1); then
-    printf '%s\n' "$clone_err"
-    log_warn "omenctl not updated: $OMENCTL_REPO is private and no credentials are available"
-    log_detail "OMENCTL_SRC=/path/to/omenctl (local checkout) or OMENCTL_REPO=git@github.com:ismail-bahloul/omenctl.git"
-    log_skip "skipping omenctl — the fans stay on the EC default curve"
-    exit 0
+  cloned=false
+  # The standalone repo is private, so it needs credentials. `gh` is already
+  # installed by base.pacman (github-cli) and carries its own token: one
+  # `gh auth login` per machine is enough, without touching the git credential
+  # helper. Try that first, then a plain clone (never interactive: chezmoi runs
+  # this non-interactively, where git's prompt bypasses the redirection — it goes
+  # to /dev/tty — and blocks or prints garbage).
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if gh repo clone ismail-bahloul/omenctl "$WORKDIR/omenctl" -- --depth=1 --branch "$OMENCTL_REF" >/dev/null 2>&1; then
+      cloned=true
+    fi
+  fi
+  if ! $cloned; then
+    # Do not abort the whole apply on failure: omenctl drives this laptop's fans,
+    # nothing else in the dotfiles depends on it, so a missing credential is a
+    # warning, not a break.
+    if ! clone_err=$(GIT_TERMINAL_PROMPT=0 git clone --depth=1 --branch "$OMENCTL_REF" "$OMENCTL_REPO" "$WORKDIR/omenctl" 2>&1); then
+      printf '%s\n' "$clone_err"
+      log_warn "omenctl not updated: $OMENCTL_REPO is private and no credentials are available"
+      log_detail "run 'gh auth login' once (gh ships with base.pacman), or set OMENCTL_SRC=/path/to/omenctl"
+      log_detail "SSH also works: OMENCTL_REPO=git@github.com:ismail-bahloul/omenctl.git"
+      log_skip "skipping omenctl — the fans stay on the EC default curve"
+      exit 0
+    fi
   fi
   SRC="$WORKDIR/omenctl"
 fi
