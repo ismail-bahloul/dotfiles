@@ -96,6 +96,21 @@ if pacman -Q jack2 &>/dev/null; then
   sudo pacman -Rdd --noconfirm jack2
 fi
 
+# --- [multilib] ---------------------------------------------------------------
+# The registry installs 32-bit packages (Wine/Steam/NVIDIA/Mesa layers), which
+# live in [multilib]. A stock Arch ships it commented out, CachyOS enables it;
+# without it every lib32-* target fails and nothing gets installed. Enable it
+# here rather than in install.sh: this script owns the sudo (it writes the
+# NOPASSWD rule above) and it is the only consumer. -Sy is needed once, right
+# after enabling the repo, so pacman can see the new packages.
+if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+  log_info "enabling [multilib] (needed by the lib32-* packages)..."
+  sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+  if ! sudo pacman -Sy --noconfirm; then
+    log_warn "pacman -Sy failed — the lib32-* targets may not resolve"
+  fi
+fi
+
 # --- Official packages -------------------------------------------------------
 log_info "Installing pacman packages (components: ${COMPONENTS[*]})..."
 mapfile -t pacman_pkgs < <(collect pacman)
