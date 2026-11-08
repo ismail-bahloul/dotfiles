@@ -191,26 +191,47 @@ pass "git and chezmoi"
 section "Checkout"
 
 if [ -d "$DIR/.git" ]; then
-  info "updating $DIR"
   if git -C "$DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
-    git -C "$DIR" pull --ff-only
+    info "updating $DIR (pull)"
+    git -C "$DIR" pull --quiet --ff-only >/dev/null
   else
+    info "updating $DIR (fetch main)"
     git -C "$DIR" fetch --quiet --depth 1 origin HEAD
     git -C "$DIR" checkout --quiet --force FETCH_HEAD
   fi
 else
   info "cloning $DIR"
-  git clone "$REPO" "$DIR"
+  if ! git clone --quiet "$REPO" "$DIR"; then
+    fail "could not clone $REPO"
+    detail "check the network, or set DOTFILES_REPO to another URL"
+    summary
+    exit 1
+  fi
 fi
 
-where=$(git -C "$DIR" symbolic-ref --quiet --short HEAD || true)
-if [ -z "$where" ]; then
-  where=$(git -C "$DIR" describe --tags --exact-match 2>/dev/null || true)
+# A pinned, shallow clone has neither a branch nor local tags, so the readable
+# name comes from origin: tag first, then the default branch, then the hash.
+# Git's own chatter during the step above stays silent here, the ✔ line below
+# says what the checkout is, and a stray "Already up to date." would only
+# break the display.
+label=$(git -C "$DIR" symbolic-ref --quiet --short HEAD || true)
+rev=$(git -C "$DIR" rev-parse HEAD 2>/dev/null || true)
+if [ -z "$label" ] && [ -n "$rev" ]; then
+  label=$(git -C "$DIR" ls-remote --quiet origin 2>/dev/null | awk -v rev="$rev" '
+    $1 == rev && $2 ~ /^refs\/tags\// && tag == ""     { tag = $2 }
+    $1 == rev && $2 ~ /^refs\/heads\// && branch == "" { branch = $2 }
+    END {
+      name = (tag != "" ? tag : branch)
+      sub(/^refs\/tags\//, "", name)
+      sub(/^refs\/heads\//, "", name)
+      sub(/\^\{\}$/, "", name)
+      print name
+    }' || true)
 fi
-if [ -z "$where" ]; then
-  where=$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || true)
+if [ -z "$label" ]; then
+  label=$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || true)
 fi
-pass "$DIR at ${where:-unknown}"
+pass "$DIR at ${label:-unknown}"
 
 # --- Pre-flight: do not silently overwrite somebody's configs ----------------
 # `chezmoi status` marks an existing, differing target with " M". Only those
