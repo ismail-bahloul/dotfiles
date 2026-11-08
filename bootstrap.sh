@@ -12,8 +12,11 @@
 # The machine layer — drivers, KDE, VFIO, audio, initramfs, udev — is a
 # different repository and a different entry point: https://ismailbahloul.com/m
 #
-# Arguments: --dry-run (plan only), --force (overwrite existing configs, or run
-# on a host already provisioned by the machine layer).
+# Arguments: --dry-run (plan only), --force (overwrite existing configs).
+#
+# Re-running is safe and idempotent: this entry point and the machine layer's
+# install.sh apply the same clone, so on a provisioned host it converges to the
+# same files instead of creating a second copy.
 #
 # Deliberately self-contained: this file is piped before anything is cloned, so
 # it cannot source a library.
@@ -36,8 +39,7 @@ usage() {
 usage: bootstrap.sh [--dry-run] [--force]
 
   --dry-run  show the plan, change nothing
-  --force    overwrite configs that already exist; also allowed on a host
-             provisioned by the machine layer
+  --force    overwrite configs that already exist
 USAGE
 }
 
@@ -61,10 +63,9 @@ as_root() {
   if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
 }
 
-# --- Detect the machine layer ------------------------------------------------
-# A provisioned host already gets these files, applied by that repo's install.sh
-# from its own copy. Running this entry point there would apply a second,
-# possibly older copy.
+# --- Is the machine layer installed here? ------------------------------------
+# Only used for the closing hint. Both entry points apply the same clone, so
+# running this one on a provisioned host is idempotent, not a second copy.
 provisioned=false
 if [ -f "$HOME/.local/share/chezmoi/packages.d/base.pacman" ] ||
    [ -f /etc/udev/rules.d/99-omenctl.rules ]; then
@@ -81,22 +82,7 @@ if [ "$DRY_RUN" = true ]; then
   say "  repo:    $REPO"
   say "  clone:   $DIR"
   say "  missing: ${missing[*]:-none}"
-  if [ "$provisioned" = true ] && [ "$FORCE" = false ]; then
-    say "  guard:   host provisioned by the machine layer — a real run would refuse (--force overrides)"
-  fi
   exit 0
-fi
-
-if [ "$provisioned" = true ] && [ "$FORCE" = false ]; then
-  cat >&2 <<'MSG'
-bootstrap: this host is provisioned by the machine layer, which applies the
-  userspace files too (from its own copy of this repository). Update through it:
-
-      ~/dotfiles/install.sh
-
-  To apply this clone anyway: re-run with --force.
-MSG
-  exit 1
 fi
 
 install_pkg() {
@@ -128,8 +114,16 @@ command -v chezmoi >/dev/null 2>&1 ||
   { echo "bootstrap: chezmoi is still missing after install." >&2; exit 1; }
 
 # --- Clone or update ---------------------------------------------------------
+# The machine layer pins this same directory at a tag, so the checkout can be a
+# detached HEAD with no upstream: pull when there is one, otherwise fetch the
+# default branch and move to its tip.
 if [ -d "$DIR/.git" ]; then
-  git -C "$DIR" pull --ff-only
+  if git -C "$DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+    git -C "$DIR" pull --ff-only
+  else
+    git -C "$DIR" fetch --quiet --depth 1 origin HEAD
+    git -C "$DIR" checkout --quiet --force FETCH_HEAD
+  fi
 else
   git clone "$REPO" "$DIR"
 fi
@@ -168,8 +162,14 @@ if [ -n "$pending" ]; then
 fi
 say "bootstrap: portable dotfiles applied (open a new shell to pick up .zshrc)"
 
-# Only where the machine layer can actually be installed.
-if command -v pacman >/dev/null 2>&1; then
+if [ "$provisioned" = true ]; then
+  cat <<'MSG'
+
+This host also has the machine layer. To update both layers together:
+
+    ~/dotfiles/install.sh
+MSG
+elif command -v pacman >/dev/null 2>&1; then
   cat <<'MSG'
 
 This is the userspace layer only. For the full machine (drivers, KDE, VFIO,

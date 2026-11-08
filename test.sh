@@ -1,9 +1,9 @@
 #!/bin/bash
 # test.sh — offline checks for this repository.
 #
-# The udev path the machine guard probes is absolute and cannot be hidden from a
-# test, so the cases that need it absent run from a patched copy: only that path
-# is rewritten; the HOME marker, the flags and the stubs stay real.
+# No network, no root, no package manager: chezmoi, pacman/apt-get, git and
+# sudo are stubs on PATH, HOME is a throwaway, and nothing is written outside a
+# temp dir.
 set -u
 
 SRC=$(cd "$(dirname "$0")" && pwd)
@@ -78,7 +78,7 @@ run() { # dir name want_rc want_pat [args...]
   local d="$WORK/$1" name=$2 want_rc=$3 want_pat=$4; shift 4
   local log="$WORK/$name.log" rc
   (cd "$d" && env HOME="$d/home" PATH="$RUN_PATH" DOTFILES_DIR="$d/repo" \
-    bash "$WORK/bootstrap-noguard.sh" "$@") >"$log" 2>&1
+    bash "$SRC/bootstrap.sh" "$@") >"$log" 2>&1
   rc=$?
   if [ "$rc" = "$want_rc" ] && grep -qF "$want_pat" "$log"; then
     pass "$name (exit=$rc)"
@@ -88,18 +88,15 @@ run() { # dir name want_rc want_pat [args...]
   fi
 }
 
-sed 's|99-omenctl.rules|no-such-rule.rules|' "$SRC/bootstrap.sh" >"$WORK/bootstrap-noguard.sh"
-chmod +x "$WORK/bootstrap-noguard.sh"
-
 echo "bootstrap.sh — control flow (offline)"
 
-# 1. a host the machine layer provisioned is refused (HOME marker).
-case_dir guard
-mkdir -p "$WORK/guard/home/.local/share/chezmoi/packages.d"
-touch "$WORK/guard/home/.local/share/chezmoi/packages.d/base.pacman"
-cp "$WORK/guard/bin/chezmoi-clean" "$WORK/guard/bin/chezmoi"
-RUN_PATH="$WORK/guard/bin:/usr/bin:/bin"
-run guard guard 1 "provisioned by the machine layer"
+# 1. a host that also has the machine layer converges instead of refusing.
+case_dir provisioned
+mkdir -p "$WORK/provisioned/home/.local/share/chezmoi/packages.d"
+touch "$WORK/provisioned/home/.local/share/chezmoi/packages.d/base.pacman"
+cp "$WORK/provisioned/bin/chezmoi-clean" "$WORK/provisioned/bin/chezmoi"
+RUN_PATH="$WORK/provisioned/bin:/usr/bin:/bin"
+run provisioned provisioned 0 "portable dotfiles applied"
 
 # 2. --dry-run is read-only and does not trip the guard.
 case_dir dryrun

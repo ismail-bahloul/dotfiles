@@ -16,10 +16,10 @@ curl -fsSL https://ismailbahloul.com/d | bash -s -- --dry-run   # plan only
 curl -fsSL https://ismailbahloul.com/d | bash -s -- --force     # overwrite
 ```
 
-`--force` is required in two cases: when a target already exists with different
-content (the list is printed first and nothing is written), and on a host already
-provisioned by the machine layer, whose `install.sh` applies this repository
-from its own pinned copy.
+`--force` is required when a target already exists with different content: the
+list is printed first and nothing is written. Re-running on a host that also has
+the machine layer is not such a case: both entry points apply the same clone
+(`~/.local/share/dotfiles-portable`), so this one converges to the same files.
 
 ## From a clone
 
