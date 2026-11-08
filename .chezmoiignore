@@ -1,0 +1,7 @@
+# Repo-only files: this repository *is* a chezmoi source, so anything that must
+# not be deployed to ~ has to be listed here.
+README.md
+LICENSE
+bootstrap.sh
+test.sh
+.gitignore
