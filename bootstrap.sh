@@ -13,13 +13,17 @@
 # different repository and a different entry point: https://ismailbahloul.com/m
 #
 # Arguments: --dry-run (plan only), --force (overwrite existing configs).
+# When the script is piped, the arguments go to the script, not to bash:
+#
+#   curl -fsSL https://ismailbahloul.com/d | bash -s -- --dry-run
 #
 # Re-running is safe and idempotent: this entry point and the machine layer's
 # install.sh apply the same clone, so on a provisioned host it converges to the
 # same files instead of creating a second copy.
 #
 # Deliberately self-contained: this file is piped before anything is cloned, so
-# it cannot source a library.
+# it cannot source a library. The glyphs below mirror lib/logging.sh of the
+# machine layer, so /d and /m read the same way.
 # =============================================================================
 set -euo pipefail
 
@@ -40,6 +44,10 @@ usage: bootstrap.sh [--dry-run] [--force]
 
   --dry-run  show the plan, change nothing
   --force    overwrite configs that already exist
+
+Piped (the usual way), the flags belong to the script, not to bash:
+
+  curl -fsSL https://ismailbahloul.com/d | bash -s -- --dry-run
 USAGE
 }
 
@@ -56,7 +64,58 @@ for arg in "$@"; do
   esac
 done
 
-say() { printf '%s\n' "$*"; }
+# --- Presentation ------------------------------------------------------------
+# Same glyphs and layout as lib/logging.sh in the machine layer: ✔ pass, ✘ fail,
+# ! warn, → info, • detail, sections ruled with ━ and ─. Plain text glyphs, no
+# emoji, so they keep one cell of width and the same colour everywhere.
+RESET=$'\033[0m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[0;33m'
+BLUE=$'\033[0;34m'
+
+STEP=0
+TOTAL=3
+ERR=0
+
+# Rule a title to the same width as the machine layer's log_section.
+rule() {
+  local left="$1 "
+  local dashes=$((70 - ${#left} - 1))
+  if [ "$dashes" -lt 4 ]; then
+    dashes=4
+  fi
+  printf '\n%s%s%s' "$BOLD" "$left" "$RESET"
+  printf '─%.0s' $(seq 1 "$dashes")
+  printf '\n\n'
+}
+
+section() {
+  STEP=$((STEP + 1))
+  local title="━━━ $1"
+  if [ "$TOTAL" -gt 0 ]; then
+    title="$title $STEP/$TOTAL"
+  fi
+  rule "$title"
+}
+
+pass() { printf '  %s✔%s %s\n' "$GREEN" "$RESET" "$1"; }
+fail() { ERR=$((ERR + 1)); printf '  %s✘%s %s\n' "$RED" "$RESET" "$1"; }
+warn() { printf '  %s!%s %s\n' "$YELLOW" "$RESET" "$1"; }
+info() { printf '  %s→%s %s\n' "$BLUE" "$RESET" "$1"; }
+detail() { printf '  %s  • %s%s\n' "$DIM" "$1" "$RESET"; }
+
+summary() {
+  rule "━━━ Result"
+  if [ "$ERR" -gt 0 ]; then
+    printf '  %s%s✘ %s CHECK(S) FAILED%s\n' "$RED" "$BOLD" "$ERR" "$RESET"
+  else
+    printf '  %s%s✔ APPLIED%s %s— open a new shell to pick up .zshrc%s\n' \
+      "$GREEN" "$BOLD" "$RESET" "$DIM" "$RESET"
+  fi
+}
 
 # Run a command as root, unless already root (containers, CI).
 as_root() {
@@ -78,10 +137,12 @@ command -v git >/dev/null 2>&1 || missing+=("git")
 command -v chezmoi >/dev/null 2>&1 || missing+=("chezmoi")
 
 if [ "$DRY_RUN" = true ]; then
-  say "bootstrap: dry run — nothing will be changed"
-  say "  repo:    $REPO"
-  say "  clone:   $DIR"
-  say "  missing: ${missing[*]:-none}"
+  TOTAL=0
+  section "Dry run"
+  warn "dry run — nothing will be changed"
+  info "repo:    $REPO"
+  info "clone:   $DIR"
+  info "missing: ${missing[*]:-none}"
   exit 0
 fi
 
@@ -101,23 +162,36 @@ install_pkg() {
   fi
 }
 
+# --- Prerequisites -----------------------------------------------------------
+section "Prerequisites"
+
 if [ "${#missing[@]}" -gt 0 ]; then
-  say "bootstrap: installing ${missing[*]}..."
+  info "installing ${missing[*]}..."
   for pkg in "${missing[@]}"; do
-    install_pkg "$pkg" || {
-      echo "bootstrap: cannot install '$pkg' automatically — install it, then re-run." >&2
+    if ! install_pkg "$pkg"; then
+      fail "cannot install '$pkg' automatically"
+      detail "install it with your package manager, then re-run"
+      summary
       exit 1
-    }
+    fi
   done
 fi
-command -v chezmoi >/dev/null 2>&1 ||
-  { echo "bootstrap: chezmoi is still missing after install." >&2; exit 1; }
+
+if ! command -v chezmoi >/dev/null 2>&1; then
+  fail "chezmoi is still missing after install"
+  summary
+  exit 1
+fi
+pass "git and chezmoi"
 
 # --- Clone or update ---------------------------------------------------------
 # The machine layer pins this same directory at a tag, so the checkout can be a
 # detached HEAD with no upstream: pull when there is one, otherwise fetch the
 # default branch and move to its tip.
+section "Checkout"
+
 if [ -d "$DIR/.git" ]; then
+  info "updating $DIR"
   if git -C "$DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
     git -C "$DIR" pull --ff-only
   else
@@ -125,42 +199,52 @@ if [ -d "$DIR/.git" ]; then
     git -C "$DIR" checkout --quiet --force FETCH_HEAD
   fi
 else
+  info "cloning $DIR"
   git clone "$REPO" "$DIR"
 fi
+
+where=$(git -C "$DIR" symbolic-ref --quiet --short HEAD || true)
+if [ -z "$where" ]; then
+  where=$(git -C "$DIR" describe --tags --exact-match 2>/dev/null || true)
+fi
+if [ -z "$where" ]; then
+  where=$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || true)
+fi
+pass "$DIR at ${where:-unknown}"
 
 # --- Pre-flight: do not silently overwrite somebody's configs ----------------
 # `chezmoi status` marks an existing, differing target with " M". Only those
 # entries mean a file already on this machine would be replaced; on a fresh
 # account there are none, so the canonical `curl | bash` still applies without
 # asking — and it has to, since stdin is the script itself, not a TTY.
+section "Apply"
+
 drift=$(chezmoi --source "$DIR" status 2>/dev/null || true)
 clobber=$(printf '%s\n' "$drift" | grep -E '^ M' || true)
 if [ -n "$clobber" ] && [ "$FORCE" = false ]; then
-  cat >&2 <<'MSG'
-bootstrap: these files already exist and would be overwritten:
-
-MSG
-  printf '%s\n' "$clobber" | sed 's/^ M /      /' >&2
-  cat >&2 <<MSG
-
-  Nothing has been changed. Re-run with --force to replace them, or preview
-  the difference first:
-
-      chezmoi --source $DIR diff
-MSG
+  fail "these files already exist and would be overwritten:"
+  printf '\n'
+  printf '%s\n' "$clobber" | sed 's/^ M /      /'
+  printf '\n'
+  detail "nothing has been changed"
+  detail "re-run with --force to replace them"
+  detail "or preview the difference: chezmoi --source $DIR diff"
+  summary
   exit 1
 fi
 
-# --- Apply -------------------------------------------------------------------
 chezmoi --source "$DIR" apply
 
 pending=$(chezmoi --source "$DIR" status 2>/dev/null || true)
 if [ -n "$pending" ]; then
-  echo "bootstrap: the apply did not converge, still pending:" >&2
-  printf '%s\n' "$pending" | sed 's/^/  /' >&2
+  fail "the apply did not converge, still pending:"
+  printf '%s\n' "$pending" | sed 's/^/      /'
+  summary
   exit 1
 fi
-say "bootstrap: portable dotfiles applied (open a new shell to pick up .zshrc)"
+pass "portable dotfiles applied (open a new shell to pick up .zshrc)"
+
+summary
 
 if [ "$provisioned" = true ]; then
   cat <<'MSG'
