@@ -12,11 +12,13 @@
 # Apply with:  chezmoi --source <repo>/portable apply
 # =============================================================================
 
-# --- Powerlevel10k instant prompt -------------------------------------------
-# Must stay at the top: anything printing before it defeats its purpose.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# --- Powerlevel10k: no instant prompt ---------------------------------------
+# The instant prompt shows a *cached* prompt from the previous session and
+# replaces it once the real one is ready. Fastfetch prints during startup, and
+# that replacement is what made the first prompt intermittently show a stale one
+# (plain, or from an older directory). Rendering the live prompt costs a few
+# milliseconds and is always right.
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
 
 # --- Helpers ----------------------------------------------------------------
 # Source the first readable candidate.
