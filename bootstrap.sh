@@ -254,6 +254,10 @@ if [ -n "$clobber" ] && [ "$FORCE" = false ]; then
   exit 1
 fi
 
+# This source has no .chezmoi.toml.tmpl, so chezmoi compares it against the
+# machine config and warns that the template changed. Expected, not a failure.
+detail "chezmoi may warn that the config file template changed — this source has none by design"
+
 chezmoi --source "$DIR" apply
 
 pending=$(chezmoi --source "$DIR" status 2>/dev/null || true)
