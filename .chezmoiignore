@@ -5,3 +5,4 @@ LICENSE
 bootstrap.sh
 test.sh
 .gitignore
+docs

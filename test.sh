@@ -144,7 +144,7 @@ fi
 
 # Without this, an apply would drop the README and the bootstrap into ~.
 missing_ignore=""
-for f in README.md LICENSE bootstrap.sh test.sh; do
+for f in README.md LICENSE bootstrap.sh test.sh docs; do
   grep -qxF "$f" .chezmoiignore || missing_ignore="$missing_ignore $f"
 done
 if [ -z "$missing_ignore" ]; then
@@ -155,7 +155,7 @@ fi
 
 if command -v chezmoi >/dev/null 2>&1; then
   leaked=$(chezmoi --source "$SRC" managed --include files 2>/dev/null \
-    | grep -xE 'README\.md|LICENSE|bootstrap\.sh|test\.sh' || true)
+    | grep -xE 'README\.md|LICENSE|bootstrap\.sh|test\.sh|docs/.+' || true)
   if [ -z "$leaked" ]; then
     pass "chezmoi deploys none of the repo-only files"
   else
