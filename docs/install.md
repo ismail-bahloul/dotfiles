@@ -45,8 +45,8 @@ Only `chezmoi` is installed for you. The rest is yours to add:
 Optional, used when present: `zsh-autosuggestions`, `zsh-syntax-highlighting`,
 `zsh-history-substring-search`, `fzf`, `zoxide`, and powerlevel10k (Arch:
 `zsh-theme-powerlevel10k`; elsewhere clone it into
-`~/.local/share/powerlevel10k`). Each missing piece is reported once on stderr —
-`zshrc: zsh-autosuggestions not found (install the distro package)` — rather than
+`~/.local/share/powerlevel10k`). Each missing piece is reported once on stderr, e.g.
+`zshrc: zsh-autosuggestions not found (install the distro package)`, rather than
 degrading the shell silently.
 
 ## Font

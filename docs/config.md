@@ -35,7 +35,7 @@ None of these are versioned:
 On a host that also has the machine layer, `chezmoi --source
 ~/.local/share/dotfiles-portable` prints `config file template has changed`.
 That is expected: this source has no `chezmoi.toml.tmpl`, so chezmoi compares
-the existing machine config against nothing. The apply is exact — `status` is
+the existing machine config against nothing. The apply is exact: `status` is
 empty afterwards.
 
 **Do not run `chezmoi init` to "fix" it.** With `--source` pointing here it would
