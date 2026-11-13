@@ -7,7 +7,7 @@
 set -u
 
 SRC=$(cd "$(dirname "$0")" && pwd)
-cd "$SRC"
+cd "$SRC" || exit 1
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 

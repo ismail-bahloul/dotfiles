@@ -39,8 +39,16 @@ Only `chezmoi` is installed for you. The rest is yours to add:
 |---|---|---|---|
 | shell | `zsh` | `zsh` | `zsh` |
 | terminal | `kitty` | `kitty` | `kitty` |
-| monitor | `btop` | `btop` | `btop` |
 | GitHub CLI | `github-cli` | `gh` | `gh` |
+
+`btop` is not listed on purpose: it has no include mechanism, so its config
+belongs to the machine layer (see [config](config.md)).
+
+Make zsh the login shell once, otherwise `~/.zshrc` is never read:
+
+```bash
+chsh -s "$(command -v zsh)"
+```
 
 Optional, used when present: `zsh-autosuggestions`, `zsh-syntax-highlighting`,
 `zsh-history-substring-search`, `fzf`, `zoxide`, and powerlevel10k (Arch:
@@ -48,6 +56,10 @@ Optional, used when present: `zsh-autosuggestions`, `zsh-syntax-highlighting`,
 `~/.local/share/powerlevel10k`). Each missing piece is reported once on stderr, e.g.
 `zshrc: zsh-autosuggestions not found (install the distro package)`, rather than
 degrading the shell silently.
+
+`~/.p10k.zsh` ships with this layer, so the prompt is the same everywhere. After
+re-running `p10k configure`, put the result back in the source with
+`chezmoi --source <repo> add ~/.p10k.zsh`.
 
 ## Font
 

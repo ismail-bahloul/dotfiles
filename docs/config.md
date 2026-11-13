@@ -3,10 +3,17 @@
 | Target | Source |
 |---|---|
 | `~/.zshrc` | `dot_zshrc` |
+| `~/.p10k.zsh` | `dot_p10k.zsh` |
 | `~/.config/kitty/kitty.conf` | `dot_config/kitty/kitty.conf` |
 | `~/.config/gh/config.yml` | `dot_config/gh/config.yml` (`co` alias only) |
 | `~/.gitconfig` | `dot_gitconfig`, without the `[user]` identity |
-| `~/.local/bin/deploy-plugins` | VST3/LV2/CLAP deployer |
+
+Anything that is a tool rather than a config file lives in the machine layer:
+this source only carries files that are identical on every machine.
+
+`~/.config/gh/config.yml` holds the `co` alias only, everything else is gh's
+default. Aliases added with `gh alias set` are written to that same managed file
+and are reverted by the next apply, so add them to the source instead.
 
 ## The two hooks
 
@@ -20,6 +27,10 @@ both leave a slot:
 
 `btop` ships no config here: it has no include mechanism, so a wallpaper theme
 name has to live *in* the file and the machine layer owns `btop.conf` outright.
+
+`~/.p10k.zsh` is the lean prompt config and it ships here, so every host gets the
+same prompt. Nothing in it is host-specific: on a provisioned host the machine
+layer re-colors it at runtime from `~/.cache/material-you/prompt.zsh`.
 
 ## Secrets
 

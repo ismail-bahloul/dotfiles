@@ -5,12 +5,13 @@
 #   curl -fsSL https://ismailbahloul.com/d | bash
 #
 # Clones or updates this repository, installs chezmoi if needed, and applies it:
-# ~/.zshrc, ~/.config/{kitty,gh}, ~/.gitconfig and ~/.local/bin/deploy-plugins.
-# No root beyond the chezmoi package, no system file, no package list, no
-# hardware.
+# ~/.zshrc, ~/.p10k.zsh, ~/.config/{kitty,gh} and ~/.gitconfig. Config files
+# only: no root beyond the chezmoi package, no system file, no package list, no
+# hardware, no tool.
 #
-# The machine layer — drivers, KDE, VFIO, audio, initramfs, udev — is a
-# different repository and a different entry point: https://ismailbahloul.com/m
+# The machine layer — drivers, KDE, VFIO, audio, initramfs, udev, and the tools
+# in ~/.local/bin — is a different repository and a different entry point:
+# https://ismailbahloul.com/m
 #
 # Arguments: --dry-run (plan only), --force (overwrite existing configs).
 # When the script is piped, the arguments go to the script, not to bash:

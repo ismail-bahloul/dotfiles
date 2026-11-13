@@ -9,13 +9,15 @@
 
 [credential "https://github.com"]
 	helper =
-	helper = !/usr/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [credential "https://gist.github.com"]
 	helper =
-	helper = !/usr/bin/gh auth git-credential
+	helper = !gh auth git-credential
+# glab is optional: the helper is only invoked for authenticated operations on
+# this host, and a clone or fetch of a public repository never needs it.
 [credential "https://gitlab.freedesktop.org"]
 	helper =
-	helper = !/usr/bin/glab auth git-credential
+	helper = !glab auth git-credential
 
 [alias]
 	st = status
