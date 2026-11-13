@@ -68,6 +68,23 @@ case "$1" in
 esac
 exit 0
 STUB
+  # A destination that is not $HOME: the state key must follow destDir, or the
+  # untouched target below reads as a clobber and the apply is refused.
+  cat >"$1/chezmoi-altdest" <<'STUB'
+#!/bin/sh
+[ "$1" = "--source" ] && shift 2
+case "$1" in
+  apply)  echo "FAKE: chezmoi $*"; : > "$0.applied" ;;
+  status) [ -f "$0.applied" ] || echo " M .zshrc";;
+  execute-template) echo "/alt/home";;
+  state)
+    for a in "$@"; do
+      [ "$a" = "--key=/alt/home/.zshrc" ] && { echo '{"type":"file","mode":420}'; exit 0; }
+    done
+    ;;
+esac
+exit 0
+STUB
   chmod +x "$1"/*
 }
 
@@ -164,6 +181,12 @@ case_dir edited
 cp "$WORK/edited/bin/chezmoi-edited" "$WORK/edited/bin/chezmoi"
 RUN_PATH="$WORK/edited/bin:/usr/bin:/bin"
 run edited edited 1 "would be overwritten"
+
+# 5e. the state key follows chezmoi's destination, not $HOME.
+case_dir altdest
+cp "$WORK/altdest/bin/chezmoi-altdest" "$WORK/altdest/bin/chezmoi"
+RUN_PATH="$WORK/altdest/bin:/usr/bin:/bin"
+run altdest altdest 0 "portable dotfiles applied"
 
 # ─── Repository ──────────────────────────────────────────────────────────────
 echo "repository"

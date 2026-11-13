@@ -257,7 +257,16 @@ pass "$DIR at ${label:-unknown}"
 # target, and that must update without asking. The state database separates the
 # two: if it holds an entry for the target, chezmoi wrote it, so only the source
 # moved on.
+#
+# `status` names targets relative to the destination, the state database keys
+# them absolutely, so the prefix has to be the real destination. Ask chezmoi
+# rather than assuming $HOME: with -D, or a destDir in chezmoi.toml, a wrong
+# prefix would make every untouched target look like a clobber.
 section "Apply"
+
+dest_dir=$(chezmoi --source "$DIR" execute-template '{{ .chezmoi.destDir }}' 2>/dev/null) || true
+dest_dir=${dest_dir:-$HOME}
+dest_dir=${dest_dir%/}
 
 drift=$(chezmoi --source "$DIR" status 2>/dev/null || true)
 clobber=""
@@ -279,7 +288,7 @@ while IFS= read -r line; do
   # chezmoi state get exits 0 whether or not the key exists, so the answer is
   # the output, not the status.
   if [ -z "$(chezmoi --source "$DIR" state get --bucket=entryState \
-      --key="$HOME/$target" 2>/dev/null)" ]; then
+      --key="$dest_dir/$target" 2>/dev/null)" ]; then
     clobber="$clobber$line"$'\n'
   fi
 done <<< "$drift"
