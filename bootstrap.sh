@@ -169,12 +169,22 @@ section "Prerequisites"
 if [ "${#missing[@]}" -gt 0 ]; then
   info "installing ${missing[*]}..."
   for pkg in "${missing[@]}"; do
-    if ! install_pkg "$pkg"; then
-      fail "cannot install '$pkg' automatically"
-      detail "install it with your package manager, then re-run"
-      summary
-      exit 1
+    if install_pkg "$pkg"; then
+      continue
     fi
+    # Distros do not all package chezmoi. The one-liner that got here proves curl
+    # exists, so the official installer is the portable fallback.
+    if [ "$pkg" = chezmoi ] && command -v curl >/dev/null 2>&1; then
+      info "chezmoi is not packaged here, using the official installer..."
+      if sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"; then
+        export PATH="$HOME/.local/bin:$PATH"
+        continue
+      fi
+    fi
+    fail "cannot install '$pkg' automatically"
+    detail "install it with your package manager, then re-run"
+    summary
+    exit 1
   done
 fi
 
@@ -235,18 +245,49 @@ fi
 pass "$DIR at ${label:-unknown}"
 
 # --- Pre-flight: do not silently overwrite somebody's configs ----------------
-# `chezmoi status` marks an existing, differing target with " M". Only those
-# entries mean a file already on this machine would be replaced; on a fresh
-# account there are none, so the canonical `curl | bash` still applies without
-# asking — and it has to, since stdin is the script itself, not a TTY.
+# chezmoi status prints two columns: the first is how the target differs from the
+# last state chezmoi wrote, the second is what apply would do (A create,
+# M modify, D delete). Three cases matter here:
+#
+#   " M" target differs from a source chezmoi never wrote   -> somebody's config
+#   "MM" target edited since chezmoi wrote it                -> local edit
+#   "DA" target deleted since chezmoi wrote it               -> apply would recreate
+#
+# A plain " M" is also what every upstream change looks like on an untouched
+# target, and that must update without asking. The state database separates the
+# two: if it holds an entry for the target, chezmoi wrote it, so only the source
+# moved on.
 section "Apply"
 
 drift=$(chezmoi --source "$DIR" status 2>/dev/null || true)
-clobber=$(printf '%s\n' "$drift" | grep -E '^ M' || true)
+clobber=""
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  code=${line:0:2}
+  target=${line:3}
+  first=${code:0:1}
+  second=${code:1:1}
+  # Nothing to lose: apply would only create the target or run a script.
+  case "$second" in
+    A | R | '') continue ;;
+  esac
+  # Modified or deleted since chezmoi wrote it: this is a local change.
+  case "$first" in
+    M | D) clobber="$clobber$line"$'\n'; continue ;;
+  esac
+  # Untouched target: fine if chezmoi wrote it, a clobber if it never did.
+  # chezmoi state get exits 0 whether or not the key exists, so the answer is
+  # the output, not the status.
+  if [ -z "$(chezmoi --source "$DIR" state get --bucket=entryState \
+      --key="$HOME/$target" 2>/dev/null)" ]; then
+    clobber="$clobber$line"$'\n'
+  fi
+done <<< "$drift"
+
 if [ -n "$clobber" ] && [ "$FORCE" = false ]; then
   fail "these files already exist and would be overwritten:"
   printf '\n'
-  printf '%s\n' "$clobber" | sed 's/^ M /      /'
+  printf '%s\n' "$clobber" | sed 's/^/      /'
   printf '\n'
   detail "nothing has been changed"
   detail "re-run with --force to replace them"
@@ -259,7 +300,14 @@ fi
 # machine config and warns that the template changed. Expected, not a failure.
 detail "chezmoi may warn that the config file template changed — this source has none by design"
 
-chezmoi --source "$DIR" apply
+# Without --force, chezmoi prompts when a target was edited since it last wrote
+# it. That prompt needs a TTY, and the canonical `curl | bash` has none, so the
+# check above is what makes this work: --force is the only path that prompts.
+if [ "$FORCE" = true ]; then
+  chezmoi --source "$DIR" apply --force
+else
+  chezmoi --source "$DIR" apply
+fi
 
 pending=$(chezmoi --source "$DIR" status 2>/dev/null || true)
 if [ -n "$pending" ]; then
@@ -269,6 +317,13 @@ if [ -n "$pending" ]; then
   exit 1
 fi
 pass "portable dotfiles applied (open a new shell to pick up .zshrc)"
+
+# The config is useless without the shell it configures, and installing zsh is
+# not this layer's job: say so instead of leaving a silent no-op.
+if ! command -v zsh >/dev/null 2>&1; then
+  warn "zsh is not installed, so ~/.zshrc will not be read yet"
+  detail 'install zsh, then: chsh -s "$(command -v zsh)"'
+fi
 
 summary
 

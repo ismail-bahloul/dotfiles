@@ -39,19 +39,16 @@ _zsh_autosuggestions=(
   /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
   /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
   /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-  /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 )
 _zsh_syntax_highlighting=(
   /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
   /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
   /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-  /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 )
 _zsh_substring_search=(
   /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
   /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh
   /usr/local/share/zsh-history-substring-search/zsh-history-substring-search.zsh
-  /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 )
 _zsh_p10k=(
   /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
@@ -101,19 +98,19 @@ if [[ -o interactive ]]; then
   if _zsh_source_first "${_zsh_substring_search[@]}"; then
     bindkey '^[[A' history-substring-search-up
     bindkey '^[[B' history-substring-search-down
+  else
+    _zsh_warn "zsh-history-substring-search not found (install the distro package)"
   fi
 
   # fzf: Ctrl+R (history), Ctrl+T (files), Alt+C (cd) + fuzzy completion
   if _zsh_source_first \
       /usr/share/fzf/key-bindings.zsh \
       /usr/share/fzf/shell/key-bindings.zsh \
-      /usr/share/doc/fzf/examples/key-bindings.zsh \
-      /opt/homebrew/opt/fzf/shell/key-bindings.zsh; then
+      /usr/share/doc/fzf/examples/key-bindings.zsh; then
     _zsh_source_first \
       /usr/share/fzf/completion.zsh \
       /usr/share/fzf/shell/completion.zsh \
-      /usr/share/doc/fzf/examples/completion.zsh \
-      /opt/homebrew/opt/fzf/shell/completion.zsh
+      /usr/share/doc/fzf/examples/completion.zsh
   fi
 fi
 
@@ -128,28 +125,8 @@ else
   _zsh_warn "powerlevel10k not found — keeping the default zsh prompt"
 fi
 
-# --- Handy bits -------------------------------------------------------------
-# extract any archive
-extract() {
-  [[ -f $1 ]] || { print -u2 "extract: no such file: $1"; return 1 }
-  case $1 in
-    *.tar.bz2|*.tbz2) tar xjf "$1" ;;
-    *.tar.gz|*.tgz)   tar xzf "$1" ;;
-    *.tar.xz|*.txz)   tar xJf "$1" ;;
-    *.tar.zst|*.tzst) tar --zstd -xf "$1" ;;
-    *.tar)            tar xf "$1" ;;
-    *.bz2)            bunzip2 "$1" ;;
-    *.gz)             gunzip "$1" ;;
-    *.xz)             unxz "$1" ;;
-    *.zst)            unzstd "$1" ;;
-    *.zip)            unzip "$1" ;;
-    *.7z)             7z x "$1" ;;
-    *.rar)            unrar x "$1" ;;
-    *) print -u2 "extract: unknown archive type: $1"; return 1 ;;
-  esac
-}
-
-# Colored man pages (no-op when tput or the terminfo entry is unavailable)
+# --- Man pages ---------------------------------------------------------------
+# Colored output, no-op when tput or the terminfo entry is unavailable
 if (( $+commands[tput] )); then
   export LESS_TERMCAP_md="$(tput bold 2>/dev/null)$(tput setaf 2 2>/dev/null)"
   export LESS_TERMCAP_me="$(tput sgr0 2>/dev/null)"

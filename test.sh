@@ -34,7 +34,8 @@ STUB
 #!/bin/sh
 [ "$1" = "--source" ] && shift 2
 case "$1" in
-  apply) echo "FAKE: chezmoi apply" ;;
+  apply) echo "FAKE: chezmoi $*" ;;
+  state) exit 1 ;;
 esac
 exit 0
 STUB
@@ -42,8 +43,28 @@ STUB
 #!/bin/sh
 [ "$1" = "--source" ] && shift 2
 case "$1" in
-  apply)  echo "FAKE: chezmoi apply" ;;
-  status) echo " M .zshrc" ;;
+  apply)  echo "FAKE: chezmoi $*"; : > "$0.applied" ;;
+  status) [ -f "$0.applied" ] || echo " M .zshrc" ;;
+esac
+exit 0
+STUB
+  cat >"$1/chezmoi-changed" <<'STUB'
+#!/bin/sh
+[ "$1" = "--source" ] && shift 2
+case "$1" in
+  apply)  echo "FAKE: chezmoi $*"; : > "$0.applied" ;;
+  status) [ -f "$0.applied" ] || echo " M .zshrc" ;;
+  state)  echo '{"type":"file","mode":420}';;   # wrote it, only the source moved
+esac
+exit 0
+STUB
+  cat >"$1/chezmoi-edited" <<'STUB'
+#!/bin/sh
+[ "$1" = "--source" ] && shift 2
+case "$1" in
+  apply)  echo "FAKE: chezmoi $*"; : > "$0.applied" ;;
+  status) [ -f "$0.applied" ] || echo "MM .zshrc" ;;
+  state)  echo '{"type":"file","mode":420}';;
 esac
 exit 0
 STUB
@@ -123,6 +144,26 @@ case_dir clobber
 cp "$WORK/clobber/bin/chezmoi-dirty" "$WORK/clobber/bin/chezmoi"
 RUN_PATH="$WORK/clobber/bin:/usr/bin:/bin"
 run clobber clobber 1 "would be overwritten"
+
+# 5b. --force replaces it, and chezmoi itself is told not to prompt: the prompt
+# needs a TTY that `curl | bash` does not have.
+case_dir force
+cp "$WORK/force/bin/chezmoi-dirty" "$WORK/force/bin/chezmoi"
+RUN_PATH="$WORK/force/bin:/usr/bin:/bin"
+run force force 0 "FAKE: chezmoi apply --force" --force
+
+# 5c. a moved source is an update, not a clobber: chezmoi wrote the target and
+# the target is untouched.
+case_dir changed
+cp "$WORK/changed/bin/chezmoi-changed" "$WORK/changed/bin/chezmoi"
+RUN_PATH="$WORK/changed/bin:/usr/bin:/bin"
+run changed changed 0 "portable dotfiles applied"
+
+# 5d. "MM" means edited since chezmoi wrote it, and that is a clobber.
+case_dir edited
+cp "$WORK/edited/bin/chezmoi-edited" "$WORK/edited/bin/chezmoi"
+RUN_PATH="$WORK/edited/bin:/usr/bin:/bin"
+run edited edited 1 "would be overwritten"
 
 # ─── Repository ──────────────────────────────────────────────────────────────
 echo "repository"

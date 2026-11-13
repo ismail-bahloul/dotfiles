@@ -16,10 +16,12 @@ curl -fsSL https://ismailbahloul.com/d | bash -s -- --dry-run   # plan only
 curl -fsSL https://ismailbahloul.com/d | bash -s -- --force     # overwrite
 ```
 
-`--force` is required when a target already exists with different content: the
-list is printed first and nothing is written. Re-running on a host that also has
-the machine layer is not such a case: both entry points apply the same clone
-(`~/.local/share/dotfiles-portable`), so this one converges to the same files.
+`--force` is required when a target would be replaced: a file this source never
+wrote (a config you already had) or one you edited since chezmoi wrote it. The
+list is printed first and nothing is written. A file that only differs because
+the repository moved on is updated without asking, and the run converges on a
+host that also has the machine layer: both entry points apply the same clone
+(`~/.local/share/dotfiles-portable`).
 
 ## From a clone
 
@@ -44,6 +46,11 @@ Only `chezmoi` is installed for you. The rest is yours to add:
 `btop` is not listed on purpose: it has no include mechanism, so its config
 belongs to the machine layer (see [config](config.md)).
 
+Requirements implied by the one-liner above: `bash` and `curl` to run it, then
+`git` and `chezmoi`, which it installs itself when missing. `chezmoi` comes from
+the distro when it is packaged there, otherwise from the official installer
+(`get.chezmoi.io`) into `~/.local/bin`.
+
 Make zsh the login shell once, otherwise `~/.zshrc` is never read:
 
 ```bash
@@ -53,7 +60,9 @@ chsh -s "$(command -v zsh)"
 Optional, used when present: `zsh-autosuggestions`, `zsh-syntax-highlighting`,
 `zsh-history-substring-search`, `fzf`, `zoxide`, and powerlevel10k (Arch:
 `zsh-theme-powerlevel10k`; elsewhere clone it into
-`~/.local/share/powerlevel10k`). Each missing piece is reported once on stderr, e.g.
+`~/.local/share/powerlevel10k`). `glab` is only used by the
+`gitlab.freedesktop.org` credential helper in `~/.gitconfig`. Each missing piece
+is reported once on stderr, e.g.
 `zshrc: zsh-autosuggestions not found (install the distro package)`, rather than
 degrading the shell silently.
 
