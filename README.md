@@ -8,7 +8,8 @@ curl -fsSL https://ismailbahloul.com/d | bash
 ```
 
 The machine (drivers, KDE, VFIO, audio, initramfs, the tools in `~/.local/bin`)
-is [`dotfiles-machine`](https://github.com/ismail-bahloul/dotfiles-machine). This
+is [`machine`](https://github.com/ismail-bahloul/machine) (formerly
+`dotfiles-machine`). This
 repository applies nothing outside `$HOME`.
 
 Details: [install](docs/install.md) · [what it writes](docs/config.md)
